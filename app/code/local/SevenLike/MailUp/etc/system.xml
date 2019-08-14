@@ -1,0 +1,99 @@
+<?xml version="1.0"?>
+
+<config>
+    <sections>
+        <newsletter>
+            <groups>
+                <mailup translate="label">
+                    <label>MailUp Extension Settings</label>
+                    <frontend_type>text</frontend_type>
+                    <sort_order>0</sort_order>
+                    <show_in_default>1</show_in_default>
+                    <fields>
+                        <url_console translate="comment">
+                            <label>Admin Console URL</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>10</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>It's the domain portion of the browser address field when you using the MailUp Admin console (e.g. g4a0.s03.it)</comment>
+	                        <backend_model>mailup/consoleurlvalidator</backend_model>
+                        </url_console>
+                        <username_ws translate="comment">
+                            <label>Web Service Username</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>20</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+	                        <backend_model>mailup/webserviceusernamevalidator</backend_model>
+                        </username_ws>
+                        <password_ws translate="comment">
+                            <label>Web Service Password</label>
+                            <frontend_type>password</frontend_type>
+                            <sort_order>40</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <comment>For assistance visit help.mailup.com and search for "API credentials"</comment>
+                        </password_ws>
+                        <list translate="label comment">
+                            <label>List</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>mailup/lists</source_model>
+                            <sort_order>60</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </list>
+	                    <enable_subscribe_in_checkout tranlate="label comment">
+		                    <label>Enable subscription checkbox during checkout</label>
+		                    <frontend_type>select</frontend_type>
+		                    <source_model>adminhtml/system_config_source_yesno</source_model>
+		                    <sort_order>70</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+			            </enable_subscribe_in_checkout>
+                        <enable_cron_export tranlate="label comment">
+                            <label>Enable Automatic Data Export to MailUp</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>80</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </enable_cron_export>
+                        <mailup_cron_frequency translate="label comment">
+                            <label>Export Frequency</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>mailup/adminhtml_system_source_cron_frequency</source_model>
+                            <sort_order>90</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </mailup_cron_frequency>
+                        <webhook_crypt_key>
+                            <label>Webhook crypt key</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>100</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </webhook_crypt_key>
+                        <enable_log>
+                            <label>Enable module debugging log</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>110</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </enable_log>
+                    </fields>
+                </mailup>
+            </groups>
+        </newsletter>
+    </sections>
+</config>

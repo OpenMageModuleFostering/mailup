@@ -1,0 +1,16 @@
+{
+    "name": "OpenMageModuleFostering/MailUp",
+    "type": "magento-module",
+    "license": "Academic-Free-License-(AFL)",
+    "homepage": "",
+    "description": "Filter customers based on profile and sales history, and send them targeted messages. Support automatic messages too.",
+    "authors": [
+    {
+        "name": "Sevenlike",
+        "email": "moduli-magento@sevenlike.com"
+    }
+],
+    "suggest": {
+        "magento-hackathon/magento-composer-installer": "*"
+    }
+}
