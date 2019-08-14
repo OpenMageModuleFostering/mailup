@@ -13,12 +13,25 @@ class SevenLike_MailUp_Model_Config
     const XML_MAILUP_PASSWORD       = 'mailup_newsletter/mailup/password_ws';
     const XML_MAILUP_LIST_ID        = 'mailup_newsletter/mailup/list';
     const XML_SUBSCRIBE_IN_CHECKOUT = 'mailup_newsletter/mailup/enable_subscribe_in_checkout';
+    const XML_REQ_SUBSCRIPTION_CONF = 'mailup_newsletter/mailup/require_subscription_confirmation';
     const XML_CRON_FREQ             = 'mailup_newsletter/mailup/mailup_cron_frequency';
     const XML_WEBHOOK_KEY           = 'mailup_newsletter/mailup/webhook_crypt_key';
     const XML_DISABLE_NOTIFICATION  = 'mailup_newsletter/mailup/disablenewslettersuccesses';
+    const XML_TEST_MODE_ENABLE      = 'mailup_newsletter/mailup/enable_testmode';
     
     const XML_MAPPING_SECTION       = 'mailup_newsletter/mailup_mapping';
-    
+
+    /**
+     * Is test mode enabled
+     *
+     * @param int
+     * @return bool
+     */
+    public function isTestMode($storeId = NULL)
+    {
+        return (bool) Mage::getStoreConfig(self::XML_TEST_MODE_ENABLE, $storeId);
+    }
+
     /**
      * Is the log enabled?
      * 
@@ -31,7 +44,7 @@ class SevenLike_MailUp_Model_Config
     }
     
     /**
-     * Write a log entry it enabled.
+     * Write a log entry if enabled.
      * 
      * @param   string
      * @param   int
@@ -47,7 +60,7 @@ class SevenLike_MailUp_Model_Config
     }
     
     /**
-     * Write a log entry it enabled.
+     * Write a log entry if enabled.
      * 
      * @param   string
      * @param   int
@@ -171,6 +184,17 @@ class SevenLike_MailUp_Model_Config
     public function isSubscribeInCheckout($storeId = NULL) 
     {
         return (int) Mage::getStoreConfig(self::XML_SUBSCRIBE_IN_CHECKOUT, $storeId);
+    }
+
+    /**
+     * Is Require Subscription Confirmation set in config?
+     *
+     * @param  int
+     * @return int
+     */
+    public function isRequireSubscriptionConfirmation($storeId = NULL)
+    {
+        return (int) Mage::getStoreConfig(self::XML_REQ_SUBSCRIPTION_CONF, $storeId);
     }
     
     /**

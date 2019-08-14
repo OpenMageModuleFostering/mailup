@@ -13,7 +13,7 @@
  * @method  void setStatus(string $status)
  * @method  void setTries(int $num) How many times we've tried.
  * @method  void setType(string $type)  What type of job?
- * @method  void setAsPending(int $int) Set the customers in this job to pending state or not
+ * @method  void setAsPending(int $yesOrNo) Set the customers in this job to pending state or not
  * @method  void setQueueDatetime(string $dateTime) Set the Datetime the job was queued.
  * @method  void setStartDatetime(string $dateTime) Set when the job was started
  * @method  void setFinishDatetime(string $dateTime) Set when the job was finished / completed

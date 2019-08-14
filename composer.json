@@ -3,7 +3,7 @@
     "type": "magento-module",
     "license": "Academic-Free-License-(AFL)",
     "homepage": "",
-    "description": "Filter customers based on profile and sales history, and send them targeted messages. Support automatic messages too.",
+    "description": "Filter customers based on profile and sales history, and send them targeted messages. Supports automatic messages too.",
     "authors": [
     {
         "name": "Mailup",

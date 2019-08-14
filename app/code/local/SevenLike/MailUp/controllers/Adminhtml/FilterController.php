@@ -69,35 +69,30 @@ class SevenLike_MailUp_Adminhtml_FilterController extends Mage_Adminhtml_Control
         }
         
         /**
-         * Lets make batches if required. Separate the jobs into max amount of customers.
+         * Makes batches if required. Separate the jobs into max amount of customers.
          * Create a new job for each batch.
          */
-        foreach($batches as $batchNumber => $batch) {
+        foreach ($batches as $batchNumber => $batch) {
             try {
                 $customerCount = 0;
                 /**
-                 * We have split into subscribers and none subscribers
+                 * We have split into subscribers and non-subscribers
                  */
-                foreach($batch as $subscribeStatus => $customerIdArray) {
-                    
-                    if(empty($customerIdArray)) {
+                foreach ($batch as $subscribeStatus => $customerIdArray) {
+                    if (empty($customerIdArray)) {
                         continue;
                     }
-                    
-                    if( ! $sendOptinEmail) {
-                        $asPending = 0;
-                        $sendOptin = 0;
+
+                    // Default - set subscriptions as not pending with no confirmation email
+                    $asPending = 0;
+                    $sendOptin = 0;
+                    /* If customer is not subscribed and confirmation email is requested,
+                       then set as pending with a confirmation email */
+                    if ($subscribeStatus != self::STATUS_SUBSCRIBED && $sendOptinEmail) {
+                        $asPending = 1;
+                        $sendOptin = 1;
                     }
-                    else {
-                        if($subscribeStatus == self::STATUS_SUBSCRIBED) {
-                            $asPending = 0;
-                            $sendOptin = 0;
-                        }
-                        else {
-                            $asPending = 1;
-                            $sendOptin = 1;
-                        }
-                    }
+
                     $job = Mage::getModel('mailup/job');
                     /* @var $job SevenLike_MailUp_Model_Job */
                     $job->setData(array(

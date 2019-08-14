@@ -555,7 +555,8 @@ class MailUpWsImport
 						$tempSubscribed[] = $customer;
 					}
 				}
-				$customersFiltered = array_intersect($tempSubscribed, $customersFiltered);
+
+                $customersFiltered = self::intersectByEntityId($tempSubscribed, $customersFiltered);
 			}
 			/**
              * FILTRO 1 ACQUISTATO: in base al fatto se ha effettuato o meno acquisti: 
@@ -584,10 +585,10 @@ class MailUpWsImport
 				}
 
 				if ($request->getRequest()->getParam('mailupCustomers') == 1) {
-					$customersFiltered = array_intersect($tempPurchased, $customersFiltered);
+					$customersFiltered = self::intersectByEntityId($tempPurchased, $customersFiltered);
 				} 
                 elseif ($request->getRequest()->getParam('mailupCustomers') == 2) {
-					$customersFiltered = array_intersect($tempNoPurchased, $customersFiltered);
+					$customersFiltered = self::intersectByEntityId($tempNoPurchased, $customersFiltered);
 				}
 			}
 			/**
@@ -642,7 +643,7 @@ class MailUpWsImport
 					$count++;
 				}
 
-				$customersFiltered = array_intersect($tempProduct, $customersFiltered);
+				$customersFiltered = self::intersectByEntityId($tempProduct, $customersFiltered);
 			}
 			/**
              * FILTER BOUGHT IN CATEGORY 3: Depending on whether bought at least one product in a given category
@@ -674,7 +675,7 @@ class MailUpWsImport
 						foreach ($items as $product) {
                             $_prod = Mage::getModel('catalog/product')->load($product->getProductId()); // ned to load full product for cats.
                             $productCategories = Mage::getResourceSingleton('catalog/product')->getCategoryIds($_prod);
-                            $matchingCategories = array_intersect($productCategories, $searchCategories);
+                            $matchingCategories = self::intersectByEntityId($productCategories, $searchCategories);
                             if(is_array($matchingCategories) && ! empty($matchingCategories)) {
                                 $tempCategory[] = $result[$count];
 								break 2;
@@ -684,7 +685,7 @@ class MailUpWsImport
 					unset($orders);
 					$count++;
 				}
-				$customersFiltered = array_intersect($tempCategory, $customersFiltered);
+				$customersFiltered = self::intersectByEntityId($tempCategory, $customersFiltered);
 			}
             
 			/**
@@ -701,7 +702,7 @@ class MailUpWsImport
 					}
 				}
 
-				$customersFiltered = array_intersect($tempGroup, $customersFiltered);
+				$customersFiltered = self::intersectByEntityId($tempGroup, $customersFiltered);
 			}
 			//FINE FILTRO 4 GRUPPO DI CLIENTI: testato ok
 
@@ -726,7 +727,7 @@ class MailUpWsImport
 					unset($customerItem); //->unsetData();
 				}
 
-				$customersFiltered = array_intersect($tempCountry, $customersFiltered);
+				$customersFiltered = self::intersectByEntityId($tempCountry, $customersFiltered);
 			}
 			//FINE FILTRO 5 PAESE DI PROVENIENZA: testato ok
 
@@ -751,7 +752,7 @@ class MailUpWsImport
 					unset($customerItem); //->unsetData();
 				}
 
-				$customersFiltered = array_intersect($tempPostCode, $customersFiltered);
+				$customersFiltered = self::intersectByEntityId($tempPostCode, $customersFiltered);
 			}
 			//FINE FILTRO 6 CAP DI PROVENIENZA: testato ok
 
@@ -816,7 +817,7 @@ class MailUpWsImport
 					}
 				}
 
-				$customersFiltered = array_intersect($tempDate, $customersFiltered);
+				$customersFiltered = self::intersectByEntityId($tempDate, $customersFiltered);
 			}
 			//FINE FILTRO 7 DATA CREAZIONE CLIENTE: testato ok
 
@@ -866,7 +867,7 @@ class MailUpWsImport
 					unset($orders); //->unsetData();
 				}
 
-				$customersFiltered = array_intersect($tempTotal, $customersFiltered);
+				$customersFiltered = self::intersectByEntityId($tempTotal, $customersFiltered);
 			}
 			//FINE FILTRO 8 TOTALE ACQUISTATO: testato ok
 
@@ -962,10 +963,10 @@ class MailUpWsImport
 				}
 
 				if ($request->getRequest()->getParam('mailupOrderYesNo') == 'yes') {
-					$customersFiltered = array_intersect($tempOrderedDateYes, $customersFiltered);
+					$customersFiltered = self::intersectByEntityId($tempOrderedDateYes, $customersFiltered);
 				} 
                 else {
-					$customersFiltered = array_intersect($tempOrderedDateNo, $customersFiltered);
+					$customersFiltered = self::intersectByEntityId($tempOrderedDateNo, $customersFiltered);
 				}
 			}
 			//FINE FILTRO 9 DATA ACQUISTATO: testato ok
@@ -1000,7 +1001,7 @@ class MailUpWsImport
 				}
 			}
 
-			//$customersFiltered = array_intersect($tempMod, $customersFiltered);
+			//$customersFiltered = self::intersectByEntityId($tempMod, $customersFiltered);
 			$customersFiltered = $tempMod;
 		}
 		//FINE GESTISCO LE MODIFICHE MANUALI
@@ -1035,7 +1036,7 @@ class MailUpWsImport
 	}
 
     /**
-     * Save Filter Hiny
+     * Save Filter Hint
      * 
      * @param type $filter_name
      * @param type $post
@@ -1137,4 +1138,28 @@ class MailUpWsImport
     {
 		print_r($this->soapClient->__getFunctions());
 	}
+
+    /**
+     * Recursive intersection of $array1 and $array2 by entity IDs
+     * NOTE that php's self::intersectByEntityId is not recursive, so cannot be used on arrays of arrays
+     *
+     * @param array $array1
+     * @param array $array2
+     * @return array
+     */
+    public static function intersectByEntityId($array1, $array2)
+    {
+        $tempIds = array();
+        foreach ($array1 as $entity1) {
+            $tempIds[$entity1['entity_id']] = true;
+        }
+        $tempArray = array();
+        foreach ($array2 as $entity2) {
+            if (isset($tempIds[$entity2['entity_id']])) {
+                $tempArray[] = $entity2;
+            }
+        }
+
+        return $tempArray;
+    }
 }

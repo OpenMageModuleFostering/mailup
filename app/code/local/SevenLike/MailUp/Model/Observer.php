@@ -169,9 +169,10 @@ class SevenLike_MailUp_Model_Observer
                 }
 			}
 		}
-		
+
 		$console = Mage::getStoreConfig('mailup_newsletter/mailup/url_console');
 		$listId = Mage::getStoreConfig('mailup_newsletter/mailup/list');
+        $confirm = Mage::getStoreConfig('mailup_newsletter/mailup/require_subscription_confirmation');
 
 		try {
 			$wsImport = new MailUpWsImport();
@@ -202,6 +203,7 @@ class SevenLike_MailUp_Model_Observer
 			$ws .= "?ListGuid=" . rawurlencode($listGUID);
 			$ws .= "&List=" . rawurlencode($listId);
 			$ws .= "&Email=" . rawurlencode($model->getEmail());
+            $ws .= "&Confirm=" . rawurlencode($confirm);
 
 			try {
 				if(Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) {
@@ -255,13 +257,13 @@ class SevenLike_MailUp_Model_Observer
 	}
 
     /**
-     * Subscribw the user, during checkout.
+     * Subscribe the user, during checkout.
      * 
      * @return  void
      */
 	public function subscribeDuringCheckout()
 	{
-        if (@$_REQUEST["mailup_subscribe2"]) {
+        if (isset($_REQUEST["mailup_subscribe2"]) && $_REQUEST["mailup_subscribe2"]) {
             $order_id = Mage::getSingleton("checkout/session")->getLastRealOrderId();
             $order = Mage::getModel("sales/order")->loadByIncrementId($order_id);
             try {
@@ -351,16 +353,16 @@ class SevenLike_MailUp_Model_Observer
      */
 	private static function setCustomerForDataSync($customerId, $storeId = NULL)
 	{
-        if(Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) {
+        if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) {
             Mage::log("TRIGGERED setCustomerForDataSync [StoreID:{$storeId}]");
         }
         
-        if( ! isset($storeId)) {
+        if ( ! isset($storeId)) {
             $storeId = Mage::app()->getStore()->getId();
         }
         
-		if( ! $customerId) {
-            return FALSE;
+		if ( ! $customerId) {
+            return false;
         }
 
         $helper = Mage::helper('mailup');
@@ -371,22 +373,30 @@ class SevenLike_MailUp_Model_Observer
         /* @var $lists SevenLike_MailUp_Model_Lists */
         $listID = $config->getMailupListId($storeId);
         $listGuid = $lists->getListGuid($listID, $storeId);
+        // If list is not available, then cancel sync
+        if ($listGuid === false) {
+            if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) {
+                Mage::log("Could not fetch valid list, so cancelling customer sync");
+            }
+            return false;
+        }
         $job = Mage::getModel('mailup/job');
         /* @var $job SevenLike_MailUp_Model_Job */
         
         /**
          *  Only Sync if they are a subscriber!
          */
-        if( ! $helper->isSubscriber($customerId, $storeId)) {
+        if ( ! $helper->isSubscriber($customerId, $storeId)) {
             return;
         }
-        
+
+        // Set options for those already subscribed (not pending and no opt-in)
         $job->setData(array(
-            "mailupgroupid"     => '',
-            "send_optin"        => 0,
+            'mailupgroupid'     => '',
+            'send_optin'        => 0,
             'as_pending'        => 0,
-            "status"            => "queued",
-            "queue_datetime"    => gmdate("Y-m-d H:i:s"),
+            'status'            => 'queued',
+            'queue_datetime'    => gmdate('Y-m-d H:i:s'),
             'store_id'          => $storeId,
             'list_id'           => $listID,
             'list_guid'         => $listGuid,
@@ -407,11 +417,11 @@ class SevenLike_MailUp_Model_Observer
             /** @var $jobTask SevenLike_MailUp_Model_Sync */
 			$jobTask->setData(array(
                 'store_id'      => $storeId,
-				"customer_id"   => $customerId,
-				"entity"        => "customer",
-				"job_id"        => $job->getId(),
-				"needs_sync"    => TRUE,
-				"last_sync"     => NULL,
+				'customer_id'   => $customerId,
+				'entity'        => 'customer',
+				'job_id'        => $job->getId(),
+				'needs_sync'    => true,
+				'last_sync'     => null,
 			));
             $jobTask->save();
             $config->dbLog("Sync [Insert] [customer] [{$customerId}]", $job->getId(), $storeId);
@@ -430,7 +440,7 @@ class SevenLike_MailUp_Model_Observer
          * OR we use a separate Auto Sync job!!
          */
 
-		return TRUE;
+		return true;
 	}
     
     /**

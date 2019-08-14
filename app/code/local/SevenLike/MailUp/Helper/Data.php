@@ -7,6 +7,24 @@
 class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
 {
     /**
+     * importType takes one of the following values, varying:
+     *   - Whether to import email, sms or both (in the former cases, the other is discarded)
+     *   - Whether empty fields over-write the values in MailUp (4-6) or are ignored (1-3)
+     */
+    const IMPORT_TYPE_IGNORE_EMPTY_ONLY_EMAIL     = 1;
+    const IMPORT_TYPE_IGNORE_EMPTY_ONLY_SMS       = 2;
+    const IMPORT_TYPE_IGNORE_EMPTY_EMAIL_AND_SMS  = 3;
+    const IMPORT_TYPE_REPLACE_EMPTY_ONLY_EMAIL    = 4;
+    const IMPORT_TYPE_REPLACE_EMPTY_ONLY_SMS      = 5;
+    const IMPORT_TYPE_REPLACE_EMPTY_EMAIL_AND_SMS = 6;
+
+    /**
+     * Whether the mobile input type splits the international code into a seperate field
+     */
+    const MOBILE_INPUT_TYPE_INCLUDE_INTL_CODE = 1;
+    const MOBILE_INPUT_TYPE_SPLIT_INTL_CODE   = 2;
+
+    /**
      * split customers into batches
      */
     const BATCH_SIZE = 2000;
@@ -349,12 +367,12 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
             "idGroup"       => $groupId,
             "xmlDoc"        => "",
             "idGroups"      => $groupId,
-            "importType"    => 1, 
-            "mobileInputType" => 2,
+            "importType"    => self::IMPORT_TYPE_REPLACE_EMPTY_ONLY_EMAIL,
+            "mobileInputType" => self::MOBILE_INPUT_TYPE_SPLIT_INTL_CODE,
             "asPending"     => $jobModel->getAsPending() ? 1 : 0,
             "ConfirmEmail"  => $jobModel->getSendOptin() ? 1 : 0,
             "asOptOut"      => 0,
-            "forceOptIn"    => 0, //1,
+            "forceOptIn"    => 0, // Dangerous to use as this can over-write pending/un-subscribe statuses
             "replaceGroups" => 0,
             "idConfirmNL"   => 0
         );
@@ -403,12 +421,12 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
             'listsGUIDs'    => $post['mailupListGUID'],
             'groupsIDs'     => $groupId,
             "idList"        => $idList,
-            "importType"    => 1, 
-            "mobileInputType" => 2,
+            "importType"    => self::IMPORT_TYPE_REPLACE_EMPTY_ONLY_EMAIL,
+            "mobileInputType" => self::MOBILE_INPUT_TYPE_SPLIT_INTL_CODE,
             "asPending"     => $jobModel->getAsPending() ? 1 : 0,
             "ConfirmEmail"  => $jobModel->getSendOptin() ? 1 : 0,
             "asOptOut"      => 0,
-            "forceOptIn"    => 0, //1,
+            "forceOptIn"    => 0, // Dangerous to use as this can over-write pending/un-subscribe statuses
             "replaceGroups" => 0,
             "idConfirmNL"   => 0
         );

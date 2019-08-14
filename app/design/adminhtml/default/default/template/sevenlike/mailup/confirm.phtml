@@ -181,7 +181,7 @@ $xml = simplexml_load_string($xmlLists);
             </tr>
             <tr>
                 <td>
-                    <input type="checkbox" name="send_optin_email_to_new_subscribers" value="1" checked="checked" /> <?php echo $this->__('Send opt-in email to new subscribers') ?>
+                    <input type="checkbox" name="send_optin_email_to_new_subscribers" value="1"<?php if($listId == Mage::getStoreConfig('mailup_newsletter/mailup/require_subscription_confirmation', $storeId)): ?> checked="checked" <?php endif ?> /> <?php echo $this->__('Send opt-in email to new subscribers') ?>
                 </td>
             </tr>
         </table>

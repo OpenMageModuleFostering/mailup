@@ -103,21 +103,27 @@ class SevenLike_MailUp_Model_Lists
 
         return $selectLists;
     }
-    
+
     /**
-     * Get an array of list data, and it's groups.
-     * 
-     * @return  array
+     *
+     * Get an array of list data, and its groups.
+     * @param $listId
+     * @param $storeId
+     * @return bool|array
      */
-   
     public function getListDataArray($listId, $storeId) 
     {
         $listData = $this->getDataArray($storeId);
-        if(isset($listData[$listId])) {
+        if (isset($listData[$listId])) {
            return $listData[$listId];
         }
-        
-        throw new Mage_Exception('Invalid List ID: ' . $listId);
+
+        // If list not found, return false
+        if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log', $storeId)) {
+            Mage::log('Invalid List ID: ' . $listId);
+        }
+
+        return false;
     }
     
     /**
@@ -125,7 +131,6 @@ class SevenLike_MailUp_Model_Lists
      * 
      * @return  array
      */
-   
     public function getDataArray($storeId) 
     {
         $selectLists = array();
@@ -174,14 +179,14 @@ class SevenLike_MailUp_Model_Lists
      * 
      * @param   int
      * @param   int
-     * @return  string
+     * @return  string|false
      */
     public function getListGuid($listId, $storeId)
     {
         $listData = $this->getListDataArray($listId, $storeId);
-        
-        if( ! isset($listData['listGUID'])) {
-            throw new Mage_Exception("Cant find ListGuid for List [{$listId}] Store [{$storeId}]");
+
+        if ($listData === false || !isset($listData['listGUID'])) {
+            return false;
         }
         
         return $listData['listGUID'];
@@ -190,11 +195,15 @@ class SevenLike_MailUp_Model_Lists
     /**
      * Get the groups for a given list.
      * 
-     * @param   int
+     * @param   int|false
      */
     public function getListGroups($listId, $storeId)
     {
         $listData = $this->getListDataArray($listId, $storeId);
+
+        if ($listData === false || !isset($listData['groups'])) {
+            return false;
+        }
         
         return $listData['groups'];
     }

@@ -14,13 +14,13 @@ class SevenLike_MailUp_TestController extends Mage_Core_Controller_Front_Action
      */
     public function preDispatch()
     {
-        //$config = Mage::getModel('mailup/config');
+        $config = Mage::getModel('mailup/config');
         /* @var $config SevenLike_MailUp_Model_Config */
-        
-        //if( ! $config->isTestMode()) {
-        //    die('Access Denied.');
-        //}
-        
+
+        if( ! $config->isTestMode()) {
+            die('Access Denied.');
+        }
+
         return parent::preDispatch();
     }
     
@@ -83,24 +83,6 @@ class SevenLike_MailUp_TestController extends Mage_Core_Controller_Front_Action
         $job = Mage::getModel('mailup/job');
         /* @var $job SevenLike_MailUp_Model_Job */
         
-        foreach($job->fetchQueuedJobsCollection() as $job) {
-            echo "Job [{$job->getId()}] [{$job->getType()}] <br />";
-        }
-        
-        echo '<br />----<br />';
-        
-        foreach($job->fetchManualSyncQueuedJobsCollection() as $job) {
-            echo "Job [{$job->getId()}] [{$job->getType()}] <br />";
-        }
-        
-        echo '<br />----<br />';
-        
-        foreach($job->fetchAutoSyncQueuedJobsCollection() as $job) {
-            echo "Job [{$job->getId()}] [{$job->getType()}] <br />";
-        }
-        
-        return;
-        
         $tasks = $jobTask->getSyncItemsCollection();
         foreach($tasks as $task) {
             var_dump($task->getData());
@@ -111,54 +93,6 @@ class SevenLike_MailUp_TestController extends Mage_Core_Controller_Front_Action
         }
         
         var_dump($jobTask->getJob());
-    }
-    
-    /**
-     * List jobs
-     */
-    public function cronAction()
-    {
-        echo "Server Time: " . date('H:i:s') . "<br /><br />";
-        
-        $read = Mage::getSingleton('core/resource')->getConnection('core_read');
-        $stmt = $read->query("
-            SELECT * 
-            FROM cron_schedule 
-            ORDER BY scheduled_at DESC"
-        );
-        while ($row = $stmt->fetch()) {
-            echo "{$row['job_code']} | {$row['status']} | {$row['scheduled_at']} | {$row['messages']}<br />";
-        }
-    }
-    
-    /**
-     * List pending jobs
-     */
-    public function cronPendingAction()
-    {
-        echo "Server Time: " . date('H:i:s') . "<br /><br />";
-        
-        $read = Mage::getSingleton('core/resource')->getConnection('core_read');
-        $stmt = $read->query("
-            SELECT * 
-            FROM cron_schedule where status = 'pending'
-            ORDER BY scheduled_at DESC"
-        );
-        while ($row = $stmt->fetch()) {
-            echo "{$row['job_code']} | {$row['status']} | {$row['scheduled_at']} | {$row['messages']}<br />";
-        }
-    }
-    
-    /**
-     * List jobs
-     */
-    public function removeRunningAction()
-    {
-        $write = Mage::getSingleton('core/resource')->getConnection('core_write');
-        $stmt = $write->query("
-            DELETE FROM cron_schedule WHERE job_code = 'sevenlike_mailup' AND status = 'running'"
-        );
-        die('done');
     }
     
     /**
