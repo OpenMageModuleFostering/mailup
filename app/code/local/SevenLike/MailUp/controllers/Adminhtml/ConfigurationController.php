@@ -8,7 +8,7 @@ class SevenLike_MailUp_Adminhtml_ConfigurationController extends Mage_Adminhtml_
 	{
 		$url = Mage::getModel('adminhtml/url');
 		$url = $url->getUrl("adminhtml/system_config/edit", array(
-			"section" => "newsletter"
+			"section" => "mailup_newsletter"
 		));
 		Mage::app()->getResponse()->setRedirect($url);
 	}

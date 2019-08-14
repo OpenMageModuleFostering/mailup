@@ -6,23 +6,57 @@ class MailUpWsSend
 	private $soapClient;
 	private $xmlResponse;
 	protected $domResult;
+    /**
+     * @var int
+     */
+    protected $storeId;
 
-	function __construct() {
-		$this->soapClient = new SoapClient($this->WSDLUrl, array('trace' => 1, 'exceptions' => 1, 'connection_timeout' => 10));
+	function __construct($storeId = NULL) 
+    {
+		$this->soapClient = new SoapClient(
+            $this->WSDLUrl, 
+            array('trace' => 1, 'exceptions' => 1, 'connection_timeout' => 10)
+        );
+        
+        if($storeId === NULL) {
+            //$storeId = Mage::app()->getDefaultStoreView()->getStoreId();
+        }
+        
+        $this->setStoreId($storeId);
 	}
+    
+    /**
+     * Set the store ID
+     * 
+     * @param int
+     */
+    public function setStoreId($id)
+    {
+        $this->storeId = $id;
+        
+        return $this;
+    }
 	
-	function __destruct() {
+	function __destruct() 
+    {
 		unset($this->soapClient); 
 	}
 	
-	public function getFunctions() {
+	public function getFunctions() 
+    {
 		print_r($this->soapClient->__getFunctions()); 
 	}
 	
-	public function login() {
-		$loginData = array('user' => Mage::getStoreConfig('newsletter/mailup/user'),
-				'pwd' => Mage::getStoreConfig('newsletter/mailup/password'),
-				'url' => Mage::getStoreConfig('newsletter/mailup/url_console'));
+    /**
+     * Login
+     * 
+     * @return int
+     */
+	public function login() 
+    {
+		$loginData = array('user' => Mage::getStoreConfig('mailup_newsletter/mailup/user', $this->storeId),
+				'pwd' => Mage::getStoreConfig('mailup_newsletter/mailup/password', $this->storeId),
+				'url' => Mage::getStoreConfig('mailup_newsletter/mailup/url_console', $this->storeId));
 		
 		$result = get_object_vars($this->soapClient->Login($loginData));
 		$xml = simplexml_load_string($result['LoginResult']);
@@ -39,13 +73,13 @@ class MailUpWsSend
     public function loginFromId() {
         try {
             //login with webservice user
-            $loginData = array ('user' => Mage::getStoreConfig('newsletter/mailup/username_ws'),
-                'pwd' => Mage::getStoreConfig('newsletter/mailup/password_ws'),
-                'consoleId' => substr(Mage::getStoreConfig('newsletter/mailup/username_ws'), 1));
+            $loginData = array ('user' => Mage::getStoreConfig('mailup_newsletter/mailup/username_ws', $this->storeId),
+                'pwd' => Mage::getStoreConfig('mailup_newsletter/mailup/password_ws', $this->storeId),
+                'consoleId' => substr(Mage::getStoreConfig('mailup_newsletter/mailup/username_ws', $this->storeId), 1));
 
             $result = get_object_vars($this->soapClient->LoginFromId($loginData));
             $xml = simplexml_load_string($result['LoginFromIdResult']);
-            if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log($xml);
+            if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log', $this->storeId)) Mage::log($xml);
 
             $errorCode = (string)$xml->errorCode;
             $errorDescription = (string)$xml->errorDescription;
@@ -99,12 +133,12 @@ class MailUpWsSend
 
         if ($xmlSimpleElement->Fields && sizeof($xmlSimpleElement->Fields->Field) > 0) {
 			$fields = array();
-            if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log('Fields returned, overwriting default configuration', 0);
+            if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log', $this->storeId)) Mage::log('Fields returned, overwriting default configuration', 0);
             foreach ($xmlSimpleElement->Fields->Field as $fieldSimpleElement) {
                 $fields[(string)$fieldSimpleElement['Name']] = (string)$fieldSimpleElement['Id'];
             }
         }
-        if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log($fields);
+        if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log', $this->storeId)) Mage::log($fields);
         return $fields;
     }
 
@@ -247,7 +281,16 @@ class MailUpWsSend
 		}
 	}
 	
-	private function readReturnCode($func, $param) {
+    /**
+     * Get the return code
+     * 
+     * @staticvar string $func_in
+     * @param type $func
+     * @param type $param
+     * @return type
+     */
+	private function readReturnCode($func, $param) 
+    {
 		static $func_in = ''; //static variable to test xmlResponse update
 		if ($func_in != $func) { //(!isset($this->xmlResponse))
 			$func_in = $func;

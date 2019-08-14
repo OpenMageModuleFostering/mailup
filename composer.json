@@ -6,8 +6,8 @@
     "description": "Filter customers based on profile and sales history, and send them targeted messages. Support automatic messages too.",
     "authors": [
     {
-        "name": "Sevenlike",
-        "email": "moduli-magento@sevenlike.com"
+        "name": "Mailup",
+        "email": "sales@mailup.com"
     }
 ],
     "suggest": {

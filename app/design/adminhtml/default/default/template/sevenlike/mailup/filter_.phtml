@@ -2,7 +2,7 @@
 /**
  * filter.phtml
  */
-$wsSend = new MailUpWsSend(); /** @todo add in storeID, use session.. not needed really here... **/
+$wsSend = new MailUpWsSend(); /** @todo add in storeID, use session.. **/
 $accessKey = $wsSend->loginFromId();
 
 if ($accessKey === false || strlen(Mage::getStoreConfig('mailup_newsletter/mailup/list')) < 1) {
@@ -78,7 +78,30 @@ if ($accessKey === false || strlen(Mage::getStoreConfig('mailup_newsletter/mailu
 
 	    <p id="spansugger"><a href="#ottsugg"><?php echo $this->__('Get hints')?> &rArr;</a></p>
 	    <fieldset id="my-fieldset">
-		<table cellspacing="0" class="form-list">
+		<table cellspacing="0" class="form-list</td>
+                <td colspan="2">
+                    <input type="radio" name="mailupSubscribed" id="mailupSubscribedAllCustomers" 
+                           value="0" <?php if (isset($mailupCustomers) && $mailupCustomers == 0) { echo 'checked="checked"'; } ?> />&nbsp;<label for="mailupSubscribedAllCustomers"><?php echo $this->__("All customers")?></label>
+                </td>
+		    </tr>
+	    </table>
+	    
+		<br /><br />	
+
+	    <table cellspacing="0" class="form-list">			
+		    <tr>
+                <td colspan="2">
+                    <strong><?php echo $this->__('Groups')?></strong>
+                </td>
+		    </tr>
+		    <tr>
+                <td class="labelpg1"><?php echo $this->__('Select customer group')?></td>
+                <td class="input-ele">
+                    <select name="mailupCustomerGroupId" class="slctpg1">
+                        <?php
+                        $customerGroups = Mage::helper('customer')->getGroups()->toOptionArray();
+
+                       ">
 		    <tr>
 			    <td colspan="3"><?php echo $this->__('By this plugin you can import contacts registered in your eCommerce in the MailUp platform.')?></td>
 		    </tr>
@@ -134,30 +157,7 @@ if ($accessKey === false || strlen(Mage::getStoreConfig('mailup_newsletter/mailu
                 <td>
                     <input type="radio" name="mailupSubscribed" id="mailupSubscribedOptIn" 
                            value="1" <?php if (isset($mailupSubscribed) && $mailupSubscribed == 1) { echo 'checked="checked"'; } ?> />&nbsp;<label for="mailupSubscribedOptIn"><?php echo $this->__("Opted-in Only"); ?></label>
-                </td>
-                <td colspan="2">
-                    <input type="radio" name="mailupSubscribed" id="mailupSubscribedAllCustomers" 
-                           value="0" <?php if (isset($mailupCustomers) && $mailupCustomers == 0) { echo 'checked="checked"'; } ?> />&nbsp;<label for="mailupSubscribedAllCustomers"><?php echo $this->__("All customers")?></label>
-                </td>
-		    </tr>
-	    </table>
-	    
-		<br /><br />	
-
-	    <table cellspacing="0" class="form-list">			
-		    <tr>
-                <td colspan="2">
-                    <strong><?php echo $this->__('Groups')?></strong>
-                </td>
-		    </tr>
-		    <tr>
-                <td class="labelpg1"><?php echo $this->__('Select customer group')?></td>
-                <td class="input-ele">
-                    <select name="mailupCustomerGroupId" class="slctpg1">
-                        <?php
-                        $customerGroups = Mage::helper('customer')->getGroups()->toOptionArray();
-
-                        if ($mailupCustomerGroupId) {
+                 if ($mailupCustomerGroupId) {
                             foreach ($customerGroups as $customerGroup) {
                                 if ($mailupCustomerGroupId == $customerGroup['value']) {
                                     echo '<option value="'.$customerGroup['value'].'">'.$customerGroup['label'].'</option>';

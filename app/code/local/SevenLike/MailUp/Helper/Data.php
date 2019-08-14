@@ -4,7 +4,19 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
 {
 	public static function getCustomersData($customerCollection = null)
 	{
-        if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log('Getting customers data', 0);
+        $config = Mage::getModel('mailup/config');
+        /* @var $config SevenLike_Mailup_Model_Config */
+        
+        if ($config->isLogEnabled()) {
+            Mage::log('Getting customers data', 0);
+        }
+        
+        if(is_array($customerCollection) && empty($customerCollection)) {
+            if ($config->isLogEnabled()) {
+                Mage::log('CustomerCollection is Empty!');
+            }
+        }
+        
 		$dateFormat = 'm/d/y h:i:s';
 		$lastDateTime = date($dateFormat, Mage::getModel('core/date')->timestamp(time())-7*3600*24);
 		$thirtyDaysAgo = date($dateFormat, Mage::getModel('core/date')->timestamp(time())-30*3600*24);
@@ -13,15 +25,30 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
 		$parseSubscribers = false;
 		$toSend = array();
 		if ($customerCollection === null) {
+            /**
+             * @todo    Change to only load form current store/website
+             */
 			$customerCollection = Mage::getModel('customer/customer')->getCollection();
 			$parseSubscribers = true;
+            if ($config->isLogEnabled()) {
+                Mage::log('Parsing Subscribers, NULL collection passed.');
+            }
 		}
 		foreach ($customerCollection as $currentCustomerId) {
 			if (is_object($currentCustomerId)) {
 				$currentCustomerId = $currentCustomerId->getId();
 			}
+            
+            if( ! $currentCustomerId) {
+                if($config->isLogEnabled()) {
+                    Mage::log('Skipping Empty Customer ID!');
+                    continue;
+                }
+            }
 
-            if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log('Customer with id '.$currentCustomerId, 0);
+            if($config->isLogEnabled()) {
+                Mage::log('Customer with id '.$currentCustomerId, 0);
+            }
 			$customer = Mage::getModel('customer/customer')->load($currentCustomerId);
 			$i = $customer->getEmail();
 
@@ -36,13 +63,20 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
 			$lastShipmentOrderId = null;
 			$lastShipmentOrderDate = null;
 
-            if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log('Parsing orders of customer with id '.$currentCustomerId, 0);
+            if($config->isLogEnabled()) {
+                Mage::log('Parsing orders of customer with id '.$currentCustomerId, 0);
+            }
 			$orders = Mage::getModel('sales/order')
 				->getCollection()
-				->addAttributeToFilter('customer_id', $currentCustomerId);
-			foreach ($orders as $order) {
-                if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log("ORDINE IN STATUS: " . $order->getStatus());
-				if (!in_array($order->getStatus(), array("closed", "complete", "processing"))) continue;
+				->addAttributeToFilter('customer_id', $currentCustomerId)
+            ;
+			foreach($orders as $order) {
+                if($config->isLogEnabled()) {
+                    Mage::log("ORDINE IN STATUS: " . $order->getStatus());
+                }
+				if( ! in_array($order->getStatus(), array("closed", "complete", "processing"))) { 
+                    continue;
+                }
 				$currentOrderTotal = floatval($order->getGrandTotal());
 				$allOrdersTotalAmount += $currentOrderTotal;
 
@@ -82,28 +116,42 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
 			ksort($allOrdersIds);
 
 			//recupero i carrelli abbandonati del cliente
-            if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log('Parsing abandoned carts of customer with id '.$currentCustomerId, 0);
+            if($config->isLogEnabled()) {
+                Mage::log('Parsing abandoned carts of customer with id '.$currentCustomerId, 0);
+            }
 			$cartCollection = Mage::getResourceModel('reports/quote_collection');
-			$cartCollection->prepareForAbandonedReport(array(1));
+            $cartCollection->prepareForAbandonedReport($config->getAllStoreIds());
 			$cartCollection->addFieldToFilter('customer_id', $currentCustomerId);
 			$cartCollection->load();
 
 			$datetimeCart = null;
-			if (! empty($cartCollection)) {
-				$lastCart = end($cartCollection);
-
+			if ( ! empty($cartCollection)) {
+                $lastCart = $cartCollection->getLastItem();
 				$toSend[$i]['TotaleCarrelloAbbandonato'] = '';
 				$toSend[$i]['DataCarrelloAbbandonato'] = '';
 				$toSend[$i]['IDCarrelloAbbandonato'] = '';
 
-				if (! empty($lastCart)) {
-                    if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log('Customer with id '.$currentCustomerId .' has abandoned cart', 0);
+				if ( ! empty($lastCart)) {
+                    if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) {
+                        Mage::log('Customer with id '.$currentCustomerId .' has abandoned cart', 0);
+                    }
 					$datetimeCart = $lastCart->getUpdatedAt();
-					$toSend[$i]['TotaleCarrelloAbbandonato'] = self::_formatPrice($lastCart->getGrandTotal());
+					//$toSend[$i]['TotaleCarrelloAbbandonato'] = self::_formatPrice($lastCart->getGrandTotal());
+                    $toSend[$i]['TotaleCarrelloAbbandonato'] = self::_formatPrice($lastCart->getSubtotal());
 					$toSend[$i]['DataCarrelloAbbandonato'] = self::_retriveDateFromDatetime($datetimeCart);
 					$toSend[$i]['IDCarrelloAbbandonato'] = $lastCart->getId();
 				}
+                else {
+                    if ($config->isLogEnabled()) {
+                        Mage::log('Customer with id '.$currentCustomerId .' has empty LAST CART', 0);
+                    }
+                }
 			}
+            else {
+                if ($config->isLogEnabled()) {
+                    Mage::log('Customer id '.$currentCustomerId .' has empty abandoned cart collection', 0);
+                }
+            }
 
 			$toSend[$i]['IDUltimoOrdineSpedito'] = $lastShipmentOrderId;
 			$toSend[$i]['DataUltimoOrdineSpedito'] = $lastShipmentOrderDate;
@@ -114,7 +162,9 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
 				|| $lastOrderDateTime > $lastDateTime
 				|| ($datetimeCart && $datetimeCart > $lastDateTime))
 			{
-                if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log('Adding customer with id '.$currentCustomerId, 0);
+                if ($config->isLogEnabled()) {
+                    Mage::log('Adding customer with id '.$currentCustomerId, 0);
+                }
 
 				$toSend[$i]['nome'] = $customer->getFirstname();
 				$toSend[$i]['cognome'] = $customer->getLastname();
@@ -126,7 +176,8 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
 				//controllo se iscritto o meno alla newsletter
 				if (Mage::getModel('newsletter/subscriber')->loadByCustomer($customer)->isSubscribed()) {
 					$toSend[$i]['subscribed'] = 'yes';
-				} else {
+				} 
+                else {
 					$toSend[$i]['subscribed'] = 'no';
 				}
 
@@ -181,7 +232,7 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
 		/*
 		 *  disabled cause useless in segmentation
 		if ($parseSubscribers) {
-			if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log('Parsing subscribers', 0);
+			if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) Mage::log('Parsing subscribers', 0);
 			$subscriberCollection = Mage::getModel('newsletter/subscriber')
 				->getCollection()
 				->useOnlySubscribed()
@@ -200,25 +251,49 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
 		}
 		*/
 
-        if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log('End getting customers data', 0);
+        if($config->isLogEnabled()) {
+            Mage::log('End getting customers data', 0);
+        }
+        
 		return $toSend;
 	}
-
-	public static function generateAndSendCustomers($mailupCustomerIds, $post = null, $newsletter_subscribers = null)
+    
+    /**
+     * Sebd Customer Data
+     * 
+     * @param   type $mailupCustomerIds
+     * @param   type $post
+     * @param   type $newsletter_subscribers
+     * @param   int
+     * @return  boolean
+     */
+	public static function generateAndSendCustomers($mailupCustomerIds, $post = null, $newsletter_subscribers = null, $storeId = NULL)
 	{
-		$wsSend = new MailUpWsSend();
+        $config = Mage::getModel('mailup/config');
+        /* @var $config SevenLike_Mailup_Model_Config */
+        
+		$wsSend = new MailUpWsSend($storeId);
 		require_once dirname(__FILE__) . "/../Model/MailUpWsImport.php";
-		$wsImport = new MailUpWsImport();
+		$wsImport = new MailUpWsImport($storeId);
 		$accessKey = $wsSend->loginFromId();
 
-		if (empty($mailupCustomerIds)) return false;
-		if ($post === null) {
+		if (empty($mailupCustomerIds)) {
+            if($config->isLogEnabled($storeId)) {
+                Mage::log('Empty Customer ID Array');
+            }
+            return false;
+        }
+        /**
+         * Post EMPTY
+         */
+		if ($post === NULL) {
 			// chiamata da cron, popolo con i dati del gruppo "magento" di default
 			$post['mailupNewGroup'] = 0;
-			$post['mailupIdList'] = Mage::getStoreConfig('newsletter/mailup/list');
+			$post['mailupIdList'] = Mage::getStoreConfig('mailup_newsletter/mailup/list', $storeId);
 
 			$tmp = new SevenLike_MailUp_Model_Lists;
-			$tmp = $tmp->toOptionArray();
+			$tmp = $tmp->toOptionArray($storeId); // pass store id!
+            
 			foreach ($tmp as $t) {
 				if ($t["value"] == $post['mailupIdList']) {
 					$post['mailupListGUID'] = $t["guid"];
@@ -226,10 +301,12 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
 					break;
 				}
 			}
-			unset($tmp); unset($t);
+            
+			unset($tmp); 
+            unset($t);
 
 			$post['mailupGroupId'] = "";
-			foreach ($post["groups"] as $tmp_id_group=>$tmp_group_name) {
+			foreach ($post["groups"] as $tmp_id_group => $tmp_group_name) {
 				if ($tmp_group_name == "MAGENTO") {
 					$post['mailupGroupId'] = $tmp_id_group;
 					break;
@@ -251,8 +328,9 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
 		if ($accessKey === false) {
 			Mage::throwException('no access key returned');
 		}
+        
 		$fields = $wsSend->GetFields($accessKey);
-		$fields_mapping = $wsImport->getFieldsMapping();
+		$fields_mapping = $wsImport->getFieldsMapping($storeId); // Pass StoreId
 
 		//definisco il gruppo a cui aggiungere gli iscritti
 		$groupId = $post['mailupGroupId'];
@@ -271,35 +349,36 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
 
 		if (isset($post["send_optin_email_to_new_subscribers"]) and $post["send_optin_email_to_new_subscribers"]) {
 			$importProcessData = array(
-				"idList" => $idList,
-				"listGUID" => $listGUID,
-				"idGroup" => $groupId,
-				"xmlDoc" => "",
-				"idGroups" => $groupId,
-				"importType" => 1,
+				"idList"        => $idList,
+				"listGUID"      => $listGUID,
+				"idGroup"       => $groupId,
+				"xmlDoc"        => "",
+				"idGroups"      => $groupId,
+				"importType"    => 1, 
 				"mobileInputType" => 2,
-				"asPending" => false,
-				"ConfirmEmail" => true,
-				"asOptOut" => false,
-				"forceOptIn" => false,
-				"replaceGroups" => false,
-				"idConfirmNL" => 0
+				"asPending"     => 0,
+				"ConfirmEmail"  => 1,
+				"asOptOut"      => 0,
+				"forceOptIn"    => 0, //1,
+				"replaceGroups" => 0,
+				"idConfirmNL"   => 0
 			);
-		} else {
+		} 
+        else {
 			$importProcessData = array(
-				"idList" => $idList,
-				"listGUID" => $listGUID,
-				"idGroup" => $groupId,
-				"xmlDoc" => "",
-				"idGroups" => $groupId,
-				"importType" => 1,
+				"idList"        => $idList,
+				"listGUID"      => $listGUID,
+				"idGroup"       => $groupId,
+				"xmlDoc"        => "",
+				"idGroups"      => $groupId,
+				"importType"    => 1,
 				"mobileInputType" => 2,
-				"asPending" => false,
-				"ConfirmEmail" => false,
-				"asOptOut" => false,
-				"forceOptIn" => false,
-				"replaceGroups" => false,
-				"idConfirmNL" => 0
+				"asPending"     => 0,
+				"ConfirmEmail"  => 0,
+				"asOptOut"      => 0,
+				"forceOptIn"    => 0, //1,
+				"replaceGroups" => 0,
+				"idConfirmNL"   => 0
 			);
 		}
 
@@ -311,6 +390,13 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
 			$tmp = array();
 			$subscribers_counter++;
 			$subscriber = self::getCustomersData(array($customerId));
+           
+            if(is_array($subscriber) && empty($subscriber)) {
+                if($config->isLogEnabled($storeId)) {
+                    Mage::log('EMPTY DATA FROM getCustomersData');
+                }
+            }
+            
 			$subscriber = array_values($subscriber);
 			$subscriber = $subscriber[0];
 
@@ -321,24 +407,26 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
 
 			$xmlData .= '<subscriber email="'.$subscriber['email'].'" Number="" Name="">';
 
-			if (@$fields_mapping["Name"]) $tmp[$fields_mapping["Name"]] = '<campo'.$fields_mapping["Name"].'>'. ((!empty($subscriber['nome'])) ? $subscriber['nome'] : '') .'</campo'.$fields_mapping["Name"].'>';
-			if (@$fields_mapping["Last"]) $tmp[$fields_mapping["Last"]] = '<campo'.$fields_mapping["Last"].'>'. ((!empty($subscriber['cognome'])) ? $subscriber['cognome'] : '') .'</campo'.$fields_mapping["Last"].'>';
+			if (@$fields_mapping["Name"]) $tmp[$fields_mapping["Name"]] = '<campo'.$fields_mapping["Name"].'>'."<![CDATA[". ((!empty($subscriber['nome'])) ? $subscriber['nome'] : '') ."]]>".'</campo'.$fields_mapping["Name"].'>';
+			if (@$fields_mapping["Last"]) $tmp[$fields_mapping["Last"]] = '<campo'.$fields_mapping["Last"].'>'."<![CDATA[". ((!empty($subscriber['cognome'])) ? $subscriber['cognome'] : '') ."]]>".'</campo'.$fields_mapping["Last"].'>';
 
+            
 			foreach ($subscriber as $k=>$v) {
 				if (!strlen($subscriber[$k])) {
 					$subscriber[$k] = "-";
-				} else {
+				} 
+                else {
 					$subscriber[$k] = str_replace(array("\r\n", "\r", "\n"), " ", $v);
 				}
 			}
 
-			if (@$fields_mapping["Company"]) $tmp[$fields_mapping["Company"]] = '<campo'.$fields_mapping["Company"].'>'. $subscriber['azienda'] .'</campo'.$fields_mapping["Company"].'>';
-			if (@$fields_mapping["City"]) $tmp[$fields_mapping["City"]] = '<campo'.$fields_mapping["City"].'>'. $subscriber['città'] .'</campo'.$fields_mapping["City"].'>';
-			if (@$fields_mapping["Province"]) $tmp[$fields_mapping["Province"]] = '<campo'.$fields_mapping["Province"].'>'. $subscriber['provincia'] .'</campo'.$fields_mapping["Province"].'>';
+			if (@$fields_mapping["Company"]) $tmp[$fields_mapping["Company"]] = '<campo'.$fields_mapping["Company"].'>'. "<![CDATA[". $subscriber['azienda'] ."]]>". '</campo'.$fields_mapping["Company"].'>';
+			if (@$fields_mapping["City"]) $tmp[$fields_mapping["City"]] = '<campo'.$fields_mapping["City"].'>'. "<![CDATA[" . $subscriber['città'] ."]]>". '</campo'.$fields_mapping["City"].'>';
+			if (@$fields_mapping["Province"]) $tmp[$fields_mapping["Province"]] = '<campo'.$fields_mapping["Province"].'>'. "<![CDATA[" . $subscriber['provincia'] ."]]>" . '</campo'.$fields_mapping["Province"].'>';
 			if (@$fields_mapping["ZIP"]) $tmp[$fields_mapping["ZIP"]] = '<campo'.$fields_mapping["ZIP"].'>'. $subscriber['cap'].'</campo'.$fields_mapping["ZIP"].'>';
 			if (@$fields_mapping["Region"]) $tmp[$fields_mapping["Region"]] = '<campo'.$fields_mapping["Region"].'>'. $subscriber['regione'] .'</campo'.$fields_mapping["Region"].'>';
 			if (@$fields_mapping["Country"]) $tmp[$fields_mapping["Country"]] = '<campo'.$fields_mapping["Country"].'>'. $subscriber['paese'] .'</campo'.$fields_mapping["Country"].'>';
-			if (@$fields_mapping["Address"]) $tmp[$fields_mapping["Address"]] = '<campo'.$fields_mapping["Address"].'>'. $subscriber['indirizzo'] .'</campo'.$fields_mapping["Address"].'>';
+			if (@$fields_mapping["Address"]) $tmp[$fields_mapping["Address"]] = '<campo'.$fields_mapping["Address"].'>'."<![CDATA[". $subscriber['indirizzo'] ."]]>" .'</campo'.$fields_mapping["Address"].'>';
 			if (@$fields_mapping["Fax"]) $tmp[$fields_mapping["Fax"]] = '<campo'.$fields_mapping["Fax"].'>'. $subscriber['fax'] .'</campo'.$fields_mapping["Fax"].'>';
 			if (@$fields_mapping["Phone"]) $tmp[$fields_mapping["Phone"]] = '<campo'.$fields_mapping["Phone"].'>'. $subscriber['telefono'] .'</campo'.$fields_mapping["Phone"].'>';
 			if (@$fields_mapping["CustomerID"]) $tmp[$fields_mapping["CustomerID"]] = '<campo'.$fields_mapping["CustomerID"].'>'. $subscriber['IDCliente'] .'</campo'.$fields_mapping["CustomerID"].'>';
@@ -356,7 +444,7 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
 			if (@$fields_mapping["TotalOrderedLast12m"]) $tmp[$fields_mapping["TotalOrderedLast12m"]] = '<campo'.$fields_mapping["TotalOrderedLast12m"].'>'. $subscriber['TotaleFatturatoUltimi12Mesi'] .'</campo'.$fields_mapping["TotalOrderedLast12m"].'>';
 			if (@$fields_mapping["TotalOrderedLast30d"]) $tmp[$fields_mapping["TotalOrderedLast30d"]] = '<campo'.$fields_mapping["TotalOrderedLast30d"].'>'. $subscriber['TotaleFatturatoUltimi30gg'] .'</campo'.$fields_mapping["TotalOrderedLast30d"].'>';
 			if (@$fields_mapping["AllOrderedProductIDs"]) $tmp[$fields_mapping["AllOrderedProductIDs"]] = '<campo'.$fields_mapping["AllOrderedProductIDs"].'>'. $subscriber['IDTuttiProdottiAcquistati'] .'</campo'.$fields_mapping["AllOrderedProductIDs"].'>';
-
+            
 			$last_field = max(array_keys($tmp));
 			for ($i=1; $i<$last_field; $i++) {
 				if (!isset($tmp[$i])) $tmp[$i] = "<campo{$i}>-</campo{$i}>";
@@ -366,25 +454,41 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
 			$xmlData .= $tmp;
 			$xmlData .= "</subscriber>\n";
 
+            //if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log', $storeId)) Mage::log("Store ID before newImportProcess: {$storeId}");
+            
 			// ogni 5000 utenti invio i dati
 			if ($subscribers_counter == 5000) {
 				$importProcessData["xmlDoc"] = "<subscribers>$xmlData</subscribers>";
 				$xmlData = "";
 				$subscribers_counter = 0;
-				if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log($importProcessData, 0);
+				if($config->isLogEnabled($storeId)) {
+                    Mage::log('ImportProcessData SubscriberCounr == 5000');
+                    Mage::log($importProcessData, 0);
+                }
 				$processID = $wsImport->newImportProcess($importProcessData);
-				if ($processID === false) return false;
+				if ($processID === false) {
+                    return false;
+                }
 			}
 		}
 
 		//invio gli ultimi utenti
 		if (strlen($xmlData)) {
 			$importProcessData["xmlDoc"] = "<subscribers>$xmlData</subscribers>";
+            
 			$xmlData = "";
 			$subscribers_counter = 0;
-			if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log($importProcessData, 0);
+			if($config->isLogEnabled($storeId)) {
+                Mage::log('ImportProcessData');
+                Mage::log($importProcessData, 0);
+            }
 			$processID = $wsImport->newImportProcess($importProcessData);
-			if ($processID === false) return false;
+			if($processID === FALSE) {
+                if($config->isLogEnabled($storeId)) {
+                    Mage::log('newImportProcess B FALSE');
+                }
+                return FALSE;
+            }
 		}
 
 		if (isset($newsletter_subscribers) and is_array($newsletter_subscribers) and !empty($newsletter_subscribers)) {
@@ -396,22 +500,40 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
 					$importProcessData["xmlDoc"] = "<subscribers>$xmlData</subscribers>";
 					$xmlData = "";
 					$subscribers_counter = 0;
-					if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log($importProcessData, 0);
+					if($config->isLogEnabled($storeId)) {
+                        Mage::log($importProcessData, 0);
+                    }
 					$processID = $wsImport->newImportProcess($importProcessData);
-					if ($processID === false) return false;
+					if ($processID === FALSE) {
+                        if($config->isLogEnabled($storeId)) {
+                            Mage::log('newImportProcess C FALSE');
+                        }
+                        return FALSE;
+                    }
 				}
 			}
 		}
 
-		//avvio l'importazione su mailup
+        /**
+         * This needs unset in the newer version of the API, we needed it in the old API backend.
+         */
 		unset($importProcessData["xmlDoc"]);
+        
 		$importProcessData["listsIDs"] = $post['mailupIdList'];
-		$importProcessData["listsGUIDs"] = $post['mailupListGUID'];
+		$importProcessData["listsGUIDs"] = $post['mailupListGUID']; 
 		$importProcessData["groupsIDs"] = $groupId;
-		if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log("mailup: StartImportProcesses", 0);
-		if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log($importProcessData, 0);
+
+		if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log', $storeId)) { 
+            Mage::log("mailup: StartImportProcesses (STORE: {$storeId})", 0);
+            Mage::log($importProcessData, 0);
+        }
+        
 		$check = $wsImport->StartImportProcesses($importProcessData);
-		if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log($check, 0);
+        
+		if ($config->isLogEnabled($storeId)) {
+            Mage::log('StartImportProcesses Check: ' . $check, 0);
+        }
+        
 		return $check;
 	}
 
@@ -444,4 +566,38 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
 		$datetime = self::_convertUTCToStoreTimezone($datetime);
 		return date("d/m/Y", strtotime($datetime));
 	}
+    
+    /**
+     * Clean the Resource Table
+     */
+    public function cleanResourceTable()
+    {
+        $sql = "DELETE FROM `core_resource` WHERE `code` = 'mailup_setup';";
+        $connection = Mage::getSingleton('core/resource')->getConnection('core_write');     
+        try {
+            $connection->query($sql);
+            die('deleted module in core_resource!');
+        } 
+        catch(Exception $e){
+            echo $e->getMessage();
+        }
+    }
+        
+    /**
+     * Clean the Resource Table
+     */
+    public function showResourceTable()
+    {
+        $sql = "SELECT * FROM `core_resource`";
+        $connection = Mage::getSingleton('core/resource')->getConnection('core_read');     
+        try {
+            $result = $connection->fetchAll($sql);
+            foreach($result as $row) {
+                echo $row['code'] . "<br />";
+            }
+        } 
+        catch(Exception $e){
+            echo $e->getMessage();
+        }
+    }
 }

@@ -6,11 +6,16 @@ class SevenLike_MailUp_WebhookController extends Mage_Core_Controller_Front_Acti
     {
     }
 
+    /**
+     * Susbscribe User from newsletter.
+     * 
+     * Magento will use the current WebsiteID when subscribing
+     */
     public function subscribeAction()
     {
         $email = @$_REQUEST["customerEmail"];
         if (!$email) {
-            $cryptkey = Mage::getStoreConfig('newsletter/mailup/webhook_crypt_key');
+            $cryptkey = Mage::getStoreConfig('mailup_newsletter/mailup/webhook_crypt_key');
             foreach ($_REQUEST as $k=>$v) {
                 $k = self::rc4($cryptkey, base64_decode($k));
                 $parsed_vars = array();
@@ -27,7 +32,11 @@ class SevenLike_MailUp_WebhookController extends Mage_Core_Controller_Front_Acti
             die();
         }
 
-        $model = Mage::getModel('newsletter/subscriber')->loadByEmail($email);
+        $model = Mage::getModel('newsletter/subscriber')
+            ->setStoreId(Mage::app()->getStore()->getId())
+            //->setWebsiteId(Mage::app()->getStore()->getWebsiteId())
+            ->loadByEmail($email)
+        ;
         if (!$model->getSubscriberId()) {
             echo 0;
             die();
@@ -42,11 +51,16 @@ class SevenLike_MailUp_WebhookController extends Mage_Core_Controller_Front_Acti
         die();
     }
 
+    /**
+     * Unsubscribe User from newsletter.
+     * 
+     * Magento will use the current WebsiteID when unsubscribing
+     */
     public function unsubscribeAction()
     {
         $email = @$_REQUEST["customerEmail"];
         if (!$email) {
-            $cryptkey = Mage::getStoreConfig('newsletter/mailup/webhook_crypt_key');
+            $cryptkey = Mage::getStoreConfig('mailup_newsletter/mailup/webhook_crypt_key');
             foreach ($_REQUEST as $k=>$v) {
                 $k = self::rc4($cryptkey, base64_decode($k));
                 $parsed_vars = array();
@@ -63,7 +77,12 @@ class SevenLike_MailUp_WebhookController extends Mage_Core_Controller_Front_Acti
             die();
         }
 
-        $model = Mage::getModel('newsletter/subscriber')->loadByEmail($email);
+        $model = Mage::getModel('newsletter/subscriber')
+            ->setStoreId(Mage::app()->getStore()->getId())
+            //->setWebsiteId(Mage::app()->getStore()->getWebsiteId())
+            ->loadByEmail($email)
+        ;
+        
         if (!$model->getSubscriberId()) {
             echo 0;
             die();

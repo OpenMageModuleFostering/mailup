@@ -1,62 +1,61 @@
 <?xml version="1.0"?>
 <package>
     <name>MailUp</name>
-    <version>2.2.0</version>
+    <version>2.3.1</version>
     <stability>stable</stability>
     <license uri="http://www.opensource.org/licenses/academic.php">Academic Free License (AFL)</license>
     <channel>community</channel>
     <extends/>
     <summary>Filter customers based on profile and sales history, and send them targeted messages. Support automatic messages too.</summary>
-    <description>&lt;p&gt;MailUp is a multi-channel marketing platform, used by thousands of companies around the world to send targeted email and text messages.&lt;/p&gt;&#xD;
-&lt;p&gt;Robust and scalable, MailUp can handles large volumes and has long-term relationships with all the major international ISPs, including automatic Feedback Loop management and support for List-Unsubscribe. Over 10 billion messages were sent with MailUp in 2010.&lt;/p&gt;&#xD;
-&lt;p&gt;Using MailUp with your Magento store ensures a high level of deliverability for your emails.&lt;/p&gt;&#xD;
-&lt;p&gt;Once you install the MailUp extension, you will be able to run professional email marketing campaigns by easily filtering customers and seemlessly passing the data to MailUp, which will handle the sending and tracking of the messages.&lt;/p&gt;&#xD;
-&lt;p&gt;The MailUp extension requires a MailUp account. If you are not already a customer, setup a free trial to check it out!&lt;/p&gt;&#xD;
+    <description>&amp;lt;p&amp;gt;MailUp is a multi-channel marketing platform, used by thousands of companies around the world to send targeted email and text messages.&amp;lt;/p&amp;gt;&amp;#xD;&#xD;
+&amp;lt;p&amp;gt;Robust and scalable, MailUp can handles large volumes and has long-term relationships with all the major international ISPs, including automatic Feedback Loop management and support for List-Unsubscribe. Over 10 billion messages were sent with MailUp in 2010.&amp;lt;/p&amp;gt;&amp;#xD;&#xD;
+&amp;lt;p&amp;gt;Using MailUp with your Magento store ensures a high level of deliverability for your emails.&amp;lt;/p&amp;gt;&amp;#xD;&#xD;
+&amp;lt;p&amp;gt;Once you install the MailUp extension, you will be able to run professional email marketing campaigns by easily filtering customers and seemlessly passing the data to MailUp, which will handle the sending and tracking of the messages.&amp;lt;/p&amp;gt;&amp;#xD;&#xD;
+&amp;lt;p&amp;gt;The MailUp extension requires a MailUp account. If you are not already a customer, setup a free trial to check it out!&amp;lt;/p&amp;gt;&amp;#xD;&#xD;
+&amp;#xD;&#xD;
+&amp;lt;p&amp;gt;For more advanced marketing campaigns, leverage MailUp&amp;#x2019;s optional Marketing+ feature. It allows you to create &amp;#x201C;event-based&amp;#x201D; messages that are sent automatically when a certain condition occurs (e.g. automatically send a discount to your customers on their birthday). Features include:&amp;lt;/p&amp;gt;&amp;#xD;&#xD;
+&amp;lt;ul&amp;gt;&amp;#xD;&#xD;
+&amp;lt;li&amp;gt;create unlimited &amp;#x201C;event-based&amp;#x201D; messages&amp;lt;/li&amp;gt;&amp;#xD;&#xD;
+&amp;lt;li&amp;gt;easily turn them on/off&amp;lt;/li&amp;gt;&amp;#xD;&#xD;
+&amp;lt;li&amp;gt;specify how often the system will check for the condition to occur (e.g. daily, monthly, annually, one-time)&amp;lt;/li&amp;gt;&amp;#xD;&#xD;
+&amp;lt;li&amp;gt;combine multiple filters to define the condition that will trigger the message (e.g. send a second &amp;#x201C;Welcome&amp;#x201D; message N days after the customer subscribed)&amp;lt;/li&amp;gt;&amp;#xD;&#xD;
+&amp;lt;li&amp;gt;send a message to a specific group or any subscriber&amp;lt;/li&amp;gt;&amp;#xD;&#xD;
+&amp;lt;li&amp;gt;create conditions that are based on customer behavior (e.g. whether a previous message was opened or not)&amp;lt;/li&amp;gt;&amp;#xD;&#xD;
+&amp;lt;li&amp;gt;use ecommerce data to as a condition to trigger messages (e.g. total amount purchased; days since last purchase; etc.)&amp;lt;/li&amp;gt;&amp;#xD;&#xD;
+&amp;lt;li&amp;gt;use the same feature to send text messages (SMS) too!&amp;lt;/li&amp;gt;&amp;#xD;&#xD;
+&amp;lt;/ul&amp;gt;&amp;#xD;&#xD;
+&amp;lt;p&amp;gt;For example, store the date of the last order in a MailUp custom field, then send a discount to promote a new purchase 60 days after that last order was placed.&amp;lt;/p&amp;gt;&amp;#xD;&#xD;
+&amp;#xD;&#xD;
+&amp;lt;p&amp;gt;===========================================================&amp;lt;/p&amp;gt;&amp;#xD;&#xD;
+&amp;#xD;&#xD;
+&amp;lt;p&amp;gt;MailUp &amp;amp;egrave; un servizio nato nel 2002, totalmente "web based" , che consente l'invio di e-mail, newsletter, sms, fax, lettere cartacee e messaggi vocali pre-registrati.&amp;lt;/p&amp;gt;&amp;#xD;&#xD;
+&amp;lt;p&amp;gt;La soluzione &amp;amp;egrave; studiata appositamente per la gestione professionale e l'invio di elevati quantitativi di messaggi, con gestione della banda, invii di test e gestione delle code di uscita.&amp;lt;/p&amp;gt;&amp;#xD;&#xD;
+&amp;lt;p&amp;gt;Le e-mail vengono inviate dai server di MailUp, questo garantisce elevati tassi di deliverability, evitando che le mail vengano bloccate dai filtri antispam.&amp;lt;/p&amp;gt;&amp;#xD;&#xD;
+&amp;lt;p&amp;gt;Installando questo Plugin per Magento potrete importare nella piattaforma MailUP i nominativi registrati nel vostro eCommerce.&amp;lt;/p&amp;gt;&amp;#xD;&#xD;
+&amp;lt;p&amp;gt;Prova gratuitamente MailUp per 30 giorni&amp;lt;/p&amp;gt;&amp;#xD;&#xD;
+&amp;#xD;&#xD;
+&amp;lt;p&amp;gt;Con la funzione INVII AUTOMATICI contenuta nel pacchetto opzionale Marketing+ &amp;amp;egrave; possibile inviare in automatico email e sms, a seconda del verificarsi di condizioni o eventi. Si potranno inviare alert, auguri di compleanno, reminder, solleciti tramite email e/o sms in base a regole predefinite, per esempio in prossimit&amp;amp;agrave; della scadenza di un contratto o un anniversario.&amp;lt;br /&amp;gt;&amp;lt;br /&amp;gt;Tramite l'opzione INVII AUTOMATICI, &amp;amp;egrave; possibile&amp;lt;/p&amp;gt;&amp;#xD;&#xD;
+&amp;lt;ul&amp;gt;&amp;#xD;&#xD;
+&amp;lt;li&amp;gt;creare infiniti messaggi email o sms;&amp;lt;/li&amp;gt;&amp;#xD;&#xD;
+&amp;lt;li&amp;gt;stabilire il periodo in cui devono essere abilitati o meno;&amp;lt;/li&amp;gt;&amp;#xD;&#xD;
+&amp;lt;li&amp;gt;la frequenza di invio (es. giornaliera, mensile o annuale);&amp;lt;/li&amp;gt;&amp;#xD;&#xD;
+&amp;lt;li&amp;gt;stabilire le condizioni tramite l'utilizzo dei filtri anagrafica (es. compleanno, campi vuoti) o attivit&amp;amp;agrave; (es. iscrizione oppure se un utente non ha aperto il messaggio si pu&amp;amp;ograve; programmare un invio automatico di un secondo messaggio)&amp;lt;/li&amp;gt;&amp;#xD;&#xD;
+&amp;lt;li&amp;gt;stabilire se inviare ad un gruppo specifico di utenti o a tutto il mio database&amp;lt;/li&amp;gt;&amp;#xD;&#xD;
+&amp;lt;li&amp;gt;alimentare la banca dati tramite API o web service o procedure batch ftp notturne;&amp;lt;/li&amp;gt;&amp;#xD;&#xD;
+&amp;lt;li&amp;gt;gestire e configurare automatismi tramite una intuitiva interfaccia web.&amp;lt;/li&amp;gt;&amp;#xD;&#xD;
+&amp;lt;/ul&amp;gt;&amp;#xD;&#xD;
+&amp;lt;p&amp;gt;&amp;lt;br /&amp;gt;Ad esempio un sito di ecommerce potrebbe alimentare il DB di MailUp con informazioni sugli acquisti e MailUp potr&amp;amp;agrave; quindi inviare, ad esempio dopo 7 giorni dall'acquisto, un messaggio di costumer satisfaction oppure l'invito ad acquistare un prodotto correlato.&amp;lt;/p&amp;gt;</description>
+    <notes>Added support for multi-store installations&#xD;
 &#xD;
-&lt;p&gt;For more advanced marketing campaigns, leverage MailUp&#x2019;s optional Marketing+ feature. It allows you to create &#x201C;event-based&#x201D; messages that are sent automatically when a certain condition occurs (e.g. automatically send a discount to your customers on their birthday). Features include:&lt;/p&gt;&#xD;
-&lt;ul&gt;&#xD;
-&lt;li&gt;create unlimited &#x201C;event-based&#x201D; messages&lt;/li&gt;&#xD;
-&lt;li&gt;easily turn them on/off&lt;/li&gt;&#xD;
-&lt;li&gt;specify how often the system will check for the condition to occur (e.g. daily, monthly, annually, one-time)&lt;/li&gt;&#xD;
-&lt;li&gt;combine multiple filters to define the condition that will trigger the message (e.g. send a second &#x201C;Welcome&#x201D; message N days after the customer subscribed)&lt;/li&gt;&#xD;
-&lt;li&gt;send a message to a specific group or any subscriber&lt;/li&gt;&#xD;
-&lt;li&gt;create conditions that are based on customer behavior (e.g. whether a previous message was opened or not)&lt;/li&gt;&#xD;
-&lt;li&gt;use ecommerce data to as a condition to trigger messages (e.g. total amount purchased; days since last purchase; etc.)&lt;/li&gt;&#xD;
-&lt;li&gt;use the same feature to send text messages (SMS) too!&lt;/li&gt;&#xD;
-&lt;/ul&gt;&#xD;
-&lt;p&gt;For example, store the date of the last order in a MailUp custom field, then send a discount to promote a new purchase 60 days after that last order was placed.&lt;/p&gt;&#xD;
+Settings, including field mappings, can now be set at the store view level&#xD;
 &#xD;
-&lt;p&gt;===========================================================&lt;/p&gt;&#xD;
+Added date/time stamp of latest data sync&#xD;
 &#xD;
-&lt;p&gt;MailUp &amp;egrave; un servizio nato nel 2002, totalmente "web based" , che consente l'invio di e-mail, newsletter, sms, fax, lettere cartacee e messaggi vocali pre-registrati.&lt;/p&gt;&#xD;
-&lt;p&gt;La soluzione &amp;egrave; studiata appositamente per la gestione professionale e l'invio di elevati quantitativi di messaggi, con gestione della banda, invii di test e gestione delle code di uscita.&lt;/p&gt;&#xD;
-&lt;p&gt;Le e-mail vengono inviate dai server di MailUp, questo garantisce elevati tassi di deliverability, evitando che le mail vengano bloccate dai filtri antispam.&lt;/p&gt;&#xD;
-&lt;p&gt;Installando questo Plugin per Magento potrete importare nella piattaforma MailUP i nominativi registrati nel vostro eCommerce.&lt;/p&gt;&#xD;
-&lt;p&gt;Prova gratuitamente MailUp per 30 giorni&lt;/p&gt;&#xD;
-&#xD;
-&lt;p&gt;Con la funzione INVII AUTOMATICI contenuta nel pacchetto opzionale Marketing+ &amp;egrave; possibile inviare in automatico email e sms, a seconda del verificarsi di condizioni o eventi. Si potranno inviare alert, auguri di compleanno, reminder, solleciti tramite email e/o sms in base a regole predefinite, per esempio in prossimit&amp;agrave; della scadenza di un contratto o un anniversario.&lt;br /&gt;&lt;br /&gt;Tramite l'opzione INVII AUTOMATICI, &amp;egrave; possibile&lt;/p&gt;&#xD;
-&lt;ul&gt;&#xD;
-&lt;li&gt;creare infiniti messaggi email o sms;&lt;/li&gt;&#xD;
-&lt;li&gt;stabilire il periodo in cui devono essere abilitati o meno;&lt;/li&gt;&#xD;
-&lt;li&gt;la frequenza di invio (es. giornaliera, mensile o annuale);&lt;/li&gt;&#xD;
-&lt;li&gt;stabilire le condizioni tramite l'utilizzo dei filtri anagrafica (es. compleanno, campi vuoti) o attivit&amp;agrave; (es. iscrizione oppure se un utente non ha aperto il messaggio si pu&amp;ograve; programmare un invio automatico di un secondo messaggio)&lt;/li&gt;&#xD;
-&lt;li&gt;stabilire se inviare ad un gruppo specifico di utenti o a tutto il mio database&lt;/li&gt;&#xD;
-&lt;li&gt;alimentare la banca dati tramite API o web service o procedure batch ftp notturne;&lt;/li&gt;&#xD;
-&lt;li&gt;gestire e configurare automatismi tramite una intuitiva interfaccia web.&lt;/li&gt;&#xD;
-&lt;/ul&gt;&#xD;
-&lt;p&gt;&lt;br /&gt;Ad esempio un sito di ecommerce potrebbe alimentare il DB di MailUp con informazioni sugli acquisti e MailUp potr&amp;agrave; quindi inviare, ad esempio dopo 7 giorni dall'acquisto, un messaggio di costumer satisfaction oppure l'invito ad acquistare un prodotto correlato.&lt;/p&gt;</description>
-    <notes>Changelog:&lt;br /&gt;&#xD;
-&lt;ul&gt;&#xD;
-&lt;li&gt;you can now show the subscription checkbox during checkout&lt;/li&gt;&#xD;
-&lt;li&gt;MailUp webhooks are now supported to manage realtime subscribe/unsubscribe&lt;/li&gt;&#xD;
-&lt;li&gt;incremental sync was implemented, so that now only modified users are transferred to mailup during scheduled transmissions&lt;/li&gt;&#xD;
-&lt;li&gt;logs can now be disabled&lt;/li&gt;&#xD;
-&lt;li&gt;small interface tweeks&lt;/li&gt;&#xD;
-&lt;/ul&gt;</notes>
-    <authors><author><name>Sevenlike</name><user>sevenlike</user><email>moduli-magento@sevenlike.com</email></author></authors>
-    <date>2013-03-22</date>
-    <time>2013-03-22</time>
-    <contents><target name="magelocal"><dir name="SevenLike"><dir name="MailUp"><dir name="Block"><dir name="Checkout"><file name="Subscribe.php" hash="ccfe2351962ae4aa4c2962cee2e8e1af"/></dir><file name=".DS_Store" hash="194577a7e20bdcc7afbb718f502c134c"/></dir><dir name="Helper"><file name="Data.php" hash="678302968f4aa70cdb06aaebb66d97b6"/><file name=".DS_Store" hash="194577a7e20bdcc7afbb718f502c134c"/></dir><dir name="Model"><dir name="Adminhtml"><dir name="System"><dir name="Source"><dir name="Cron"><file name="Frequency.php" hash="6883a8ed591fb256b13452a1c95571f9"/><file name="Hours.php" hash="a29b9482b58cd4d492535323e957e74e"/></dir></dir></dir></dir><file name="Consoleurlvalidator.php" hash="445cea54aeca48b1e6197d85d0dfe524"/><file name="Cron.php" hash="f79da19fe6ef26bf6f261ad6bfb75ae1"/><file name="Lists.php" hash="c226fd4e9facd46bfc95c8d55adeffd5"/><file name="MailUp.php" hash="eb0517043c0dddcc22f2bd6c9c2bb27c"/><file name="MailUpWsImport.php" hash="1d2cbcf20bfa2b2a0f883f631fb7faec"/><dir name="Mysql14"><dir name="MailUp"><file name="Collection.php" hash="0b655573c6ed02bb67d7ff9241a1fd73"/></dir><file name="MailUp.php" hash="5a261952db1cedf7cdc7888e2ced7e16"/></dir><file name="Observer.php" hash="4b373a553ce4e77cd2282904469d4b80"/><file name="Webserviceusernamevalidator.php" hash="f6cbe6394f685a93206ace6ed33ff2fa"/><file name="Ws.php" hash="c61719e82030d4117ff2badbed12ff43"/><file name="Wssend.php" hash="7e7e53d76085ab1f2085d3f719ae44f5"/></dir><dir name="controllers"><dir name="Adminhtml"><file name="ConfigurationController.php" hash="2172562c17ac532894faf5e77ca9c9e0"/><file name="FieldsmappingController.php" hash="99b01856290d58f1b0f2d0f9f2c0389a"/><file name="FilterController.php" hash="fe56870180812ae67d01d3fc14e55da1"/><file name="ViewdatatransferlogController.php" hash="b6fd65804c91b8386a10579dc1d6cf1e"/><file name=".DS_Store" hash="194577a7e20bdcc7afbb718f502c134c"/></dir><file name="WebhookController.php" hash="52369ec7a70c7245e55bf215d1bee187"/><file name=".DS_Store" hash="194577a7e20bdcc7afbb718f502c134c"/></dir><dir name="etc"><file name="config.xml" hash="84f63ba6b1bbb746ccec809b1dc3771f"/><file name="system.xml" hash="7e68ebaf83dfe2b3201f775eaf0f66ea"/><file name=".DS_Store" hash="194577a7e20bdcc7afbb718f502c134c"/></dir><dir name="sql"><dir name="mailup_setup"><file name="mysql4-install-0.1.0.php" hash="43f2d3f43e10d493e748a6732bb4f5c5"/><file name="mysql4-upgrade-0.1.0-1.0.0.php" hash="43f2d3f43e10d493e748a6732bb4f5c5"/><file name="mysql4-upgrade-0.3.0-1.0.0.php" hash="0a6a28082e3d589cf32516b44bcd9408"/><file name="mysql4-upgrade-1.0.0-1.5.2.php" hash="4ab5fd71fbc9ba8e6cce8e974bfed2fc"/><file name="mysql4-upgrade-2.1.3-2.2.0.php" hash="577c0690622460d5ebb8d5df35bab9db"/></dir></dir></dir></dir></target><target name="magedesign"><dir name="adminhtml"><dir name="default"><dir name="default"><dir name="template"><dir name="sevenlike"><dir name="mailup"><file name="confirm.phtml" hash="32a6593e1692c5596fffea44723c94b0"/><file name="fieldsmapping.phtml" hash="ea1f418f8cb7fb2a842b091562296417"/><file name="filter.phtml" hash="9efaec8fa3e1a44b36127113274a90dd"/><file name="viewdatatransferlog.phtml" hash="746289040d75fef7b4d61bba560e294c"/></dir></dir></dir><dir name="layout"><file name="mailup.xml" hash="ab6fbb5efccb497cfd9a3721ecc161a9"/></dir></dir></dir></dir></target><target name="mageetc"><dir name="modules"><file name="SevenLike_MailUp.xml" hash="8377b55193e7524ca9572ed4dc2dca62"/></dir></target><target name="mageskin"><dir name="adminhtml"><dir name="default"><dir name="default"><dir name="sevenlike"><dir name="mailup"><dir name="images"><file name="titoli.png" hash="95a7996cd77d3413fd048018095aec6e"/></dir><file name="mailup.css" hash="5be195046fd49a2ade184a10786a5a58"/></dir></dir></dir></dir></dir></target><target name="magelocale"><dir name="en_US"><file name="SevenLike_MailUp.csv" hash="f411a2106aab75fac44c681fd7ba995e"/></dir><dir name="it_IT"><file name="SevenLike_MailUp.csv" hash="c5bf7b0d7c9951153ec355bd9e1be6aa"/></dir></target></contents>
+Updated some areas of the extension to improve performance</notes>
+    <authors><author><name>Mailup</name><user>Mailup</user><email>sales@mailup.com</email></author></authors>
+    <date>2013-05-13</date>
+    <time>23:41:16</time>
+    <contents><target name="magelocal"><dir name="SevenLike"><dir name="MailUp"><dir name="Block"><dir name="Checkout"><file name="Subscribe.php" hash="ccfe2351962ae4aa4c2962cee2e8e1af"/></dir><file name="Filters.php" hash="f881a202a8d2e3c34b3f1b4094852b2c"/></dir><dir name="Helper"><file name="Data.php" hash="7e6bd06a0d10e4d8e7cb75baee5228d5"/></dir><dir name="Model"><dir name="Adminhtml"><dir name="System"><dir name="Source"><dir name="Cron"><file name="Frequency.php" hash="2f874a2d82957748f2f249658c7e96f1"/><file name="Hours.php" hash="99b0428a6e88248bf15007396f48b0fc"/></dir><file name="Fields.php" hash="aea6ab58900926fa94b3da61b0da65c5"/></dir></dir></dir><file name="Config.php" hash="80017331d635ebebfe19fd67af60092a"/><file name="Consoleurlvalidator.php" hash="2cd27b9d21570e39ef6a5a0bbf3f97c5"/><file name="Cron.php" hash="c87a038a773674a20abcd2450e8ae009"/><file name="Lists.php" hash="6e9aaf93b1d64d203f6980ab29d843c1"/><file name="MailUp.php" hash="1b552b40a7bf6f4c915667adbe164140"/><file name="MailUpWsImport.php" hash="52b9b5edbe3b0409fb0ea2b5711e7794"/><dir name="Mysql14"><dir name="MailUp"><file name="Collection.php" hash="256485c1ba69eff42ae109d3218c89ff"/></dir><file name="MailUp.php" hash="d06606483ac4c35e42f9cb449a36c1c5"/></dir><file name="Observer.php" hash="b74abe86c62ff36880bf81c80dea40af"/><file name="Subscriber.php" hash="877fe0e81d86e8b9b0d9c23ccd5378f2"/><file name="Webserviceusernamevalidator.php" hash="9650aed034726d621968f18371d554bc"/><file name="Ws.php" hash="21ef21afcf35867d0ec8ff345babeab6"/><file name="Wssend.php" hash="aeffbd2966158bd1f3571bf84d883723"/></dir><dir name="controllers"><dir name="Adminhtml"><file name="ConfigurationController.php" hash="240d526f2c944b93b78d00d85d4b6c47"/><file name="FieldsmappingController.php" hash="66f0598c537f9518433b99cb7aa9acfe"/><file name="FilterController.php" hash="0a2ae9ab0d3af61eddb0c77dc392e45a"/><file name="ViewdatatransferlogController.php" hash="eec948994f2d1491ead736578deabf92"/></dir><file name="IndexController.php" hash="bf072545b2cdf54f9de150da72b3ecfd"/><file name="WebhookController.php" hash="ef72fa5602b3f9fec0eae41eb34638a1"/></dir><dir name="etc"><file name="config.xml" hash="9879e6dee178c150b8dab4c74fdb2ead"/><file name="system.xml" hash="ef08678b58c1970ab6361b45e9a48f28"/></dir><dir name="sql"><dir name="mailup_setup"><file name="mysql4-install-0.1.0.php" hash="8e52462c1d0d28f39c1c3f67c3748d26"/><file name="mysql4-install-2.3.0.php" hash="46254c3531adc6c2d0c3484d03c98ec5"/><file name="mysql4-upgrade-0.1.0-1.0.0.php" hash="8e52462c1d0d28f39c1c3f67c3748d26"/><file name="mysql4-upgrade-0.3.0-1.0.0.php" hash="97e4f8e3ba9e2ab4d5c5757efb3a47de"/><file name="mysql4-upgrade-1.0.0-1.5.2.php" hash="4fda0e9178a6cba85631f4f24faaf71b"/><file name="mysql4-upgrade-2.1.3-2.2.0.php" hash="9d4c89357d75bc526c0a38c8b7108611"/><file name="mysql4-upgrade-2.2.0-2.3.0.php" hash="6b838a9491a8a3d8cd66ec8399667fe3"/><file name="mysql4-upgrade-2.2.1-2.3.0.php" hash="6b838a9491a8a3d8cd66ec8399667fe3"/><file name="mysql4-upgrade-2.3.0-2.3.1.php" hash="26ce891beb0783a8cb821f09746793cf"/></dir></dir></dir></dir></target><target name="magedesign"><dir name="adminhtml"><dir name="default"><dir name="default"><dir name="layout"><file name="mailup.xml" hash="4861bbab4174cf5cfc71aeb0b4eb46a1"/></dir><dir name="template"><dir name="sevenlike"><dir name="mailup"><file name="confirm.phtml" hash="e62248a72dbf31af2bc571039c11601a"/><file name="fieldsmapping.phtml" hash="b0b22c19bc6f9c97b22754dc7a0103ba"/><file name="filter.phtml" hash="50685ed4ab63c238e3db7d47aafdb706"/><file name="filter_.phtml" hash="132650faf3903ccae5e3e5784ee27741"/><file name="viewdatatransferlog.phtml" hash="fcc13d34146e22630d1a170888b2cc73"/></dir></dir></dir></dir></dir></dir><dir name="frontend"><dir name="base"><dir name="default"><dir name="layout"><file name="mailup.xml" hash="dfb8fa89ec00b1b07264d9e2153e097d"/></dir><dir name="template"><dir name="mailup"><file name="subscribe.phtml" hash="a102e2e0dc4c836bc78eb044bf13e172"/></dir></dir></dir></dir><dir name="enterprise"><dir name="default"><dir name="layout"><file name="mailup.xml" hash="dfb8fa89ec00b1b07264d9e2153e097d"/></dir><dir name="template"><dir name="mailup"><file name="subscribe.phtml" hash="a102e2e0dc4c836bc78eb044bf13e172"/></dir></dir></dir></dir></dir></target><target name="mageetc"><dir name="modules"><file name="SevenLike_MailUp.xml" hash="8377b55193e7524ca9572ed4dc2dca62"/></dir></target><target name="magelocale"><dir name="en_US"><file name="SevenLike_MailUp.csv" hash="f411a2106aab75fac44c681fd7ba995e"/></dir><dir name="it_IT"><file name="SevenLike_MailUp.csv" hash="c5bf7b0d7c9951153ec355bd9e1be6aa"/></dir></target><target name="mageskin"><dir name="adminhtml"><dir name="default"><dir name="default"><dir name="sevenlike"><dir name="mailup"><dir name="images"><file name="MailUp_300_200_transparent_small.png" hash="fcaf7d0876af346b01e40f3c1eeaa721"/><file name="titoli.png" hash="95a7996cd77d3413fd048018095aec6e"/></dir><file name="mailup.css" hash="cd3e7f45f619c6172de923d688d21dc3"/></dir></dir></dir></dir></dir></target></contents>
     <compatible/>
     <dependencies><required><php><min>5.1.0</min><max>6.0.0</max></php></required></dependencies>
 </package>

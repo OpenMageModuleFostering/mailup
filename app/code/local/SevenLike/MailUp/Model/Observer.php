@@ -52,7 +52,13 @@ class SevenLike_MailUp_Model_Observer
 		        return "0 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23 * * *";
         }
     }
-	
+    
+	/**
+     * Observes: customer_customer_authenticated
+     * 
+     * @param type $observer
+     * @return \SevenLike_MailUp_Model_Observer
+     */
 	public function leggiUtente($observer)
 	{
 		$model = $observer->getEvent()->getModel();
@@ -62,16 +68,16 @@ class SevenLike_MailUp_Model_Observer
 
 		try {
 			$WSDLUrl = 'http://services.mailupnet.it/MailupReport.asmx?WSDL';
-			$user = Mage::getStoreConfig('newsletter/mailup/username_ws');
-			$password = Mage::getStoreConfig('newsletter/mailup/password_ws');
+			$user = Mage::getStoreConfig('mailup_newsletter/mailup/username_ws');
+			$password = Mage::getStoreConfig('mailup_newsletter/mailup/password_ws');
 			$headers = array('User' => $user, 'Password' => $password);
 			$header = new SOAPHeader("http://ws.mailupnet.it/", 'Authentication', $headers);
 			$soapclient = new SoapClient($WSDLUrl, array('trace' => 1, 'exceptions' => 1, 'connection_timeout' => 10));
 			$soapclient->__setSoapHeaders($header);
 
-			$loginData = array ('user' => Mage::getStoreConfig('newsletter/mailup/username_ws'),
-				'pwd' => Mage::getStoreConfig('newsletter/mailup/password_ws'),
-				'consoleId' => substr(Mage::getStoreConfig('newsletter/mailup/username_ws'), 1));
+			$loginData = array ('user' => Mage::getStoreConfig('mailup_newsletter/mailup/username_ws'),
+				'pwd' => Mage::getStoreConfig('mailup_newsletter/mailup/password_ws'),
+				'consoleId' => substr(Mage::getStoreConfig('mailup_newsletter/mailup/username_ws'), 1));
 			$result = get_object_vars($soapclient->LoginFromId($loginData));
 			$xml = simplexml_load_string($result['LoginFromIdResult']);
 			$errorCode = (string)$xml->errorCode;
@@ -81,14 +87,14 @@ class SevenLike_MailUp_Model_Observer
 			$result = $soapclient->ReportByUser(array(
 				"accessKey" => $accessKey,
 				"email" => $model->getEmail(),
-				"listID" => Mage::getStoreConfig('newsletter/mailup/list'),
+				"listID" => Mage::getStoreConfig('mailup_newsletter/mailup/list'),
 				"messageID" => 0
 			));
 			$result = get_object_vars($result);
 			$xml = simplexml_load_string($result['ReportByUserResult']);
 
 			$stato_registrazione = (string)$xml->Canali->Email;
-			if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log("stato registrazione: " . $stato_registrazione);
+			if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) Mage::log("stato registrazione: " . $stato_registrazione);
 			if ($stato_registrazione) {
 				switch (strtolower($stato_registrazione)) {
 					case "iscritto":
@@ -111,37 +117,53 @@ class SevenLike_MailUp_Model_Observer
 
 		return $this;
 	}
-	
+    
+	/**
+     * 
+     * @see newsletter_subscriber_save_after
+     * @param type $observer
+     * @return \SevenLike_MailUp_Model_Observer
+     */
 	public function inviaUtente($observer)
 	{
-		if (isset($GLOBALS["__sl_mailup_invia_utente"])) return $this;
+		if (isset($GLOBALS["__sl_mailup_invia_utente"])) {
+            return $this;
+        }
 		$GLOBALS["__sl_mailup_invia_utente"] = true;
 		
 		$model = $observer->getEvent()->getDataObject();
-        if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log($model->getData());
+        if(Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) {
+            Mage::log($model->getData());
+        }
 		$status = Mage::getModel('newsletter/subscriber')->loadByEmail($model->getEmail())->getStatus();
 		
 		$module = Mage::app()->getRequest()->getModuleName();
 		$controller = Mage::app()->getRequest()->getControllerName();
 		$action = Mage::app()->getRequest()->getActionName();
 
-        if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log("mailup: invia utente");
+        if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) {
+            Mage::log("mailup: invia utente");
+        }
 		
 		if (($module == "customer" and $controller == "account" and $action == "createpost") or ($module == "checkout" and $controller == "onepage" and $action == "saveOrder")) {
-            if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log("SONO in registrazione, LEGGO PRIMA mailup!");
+            if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) {
+                Mage::log("SONO in registrazione, LEGGO PRIMA mailup!");
+            }
 			//sono in registrazione, controllo lo stato di subscribe magento, se non risulto iscritto leggo lo status da mailup e se sono iscritto lo salvo su magento prima di continuare
-			if (!$status) {
+			if ( ! $status) {
 				//leggo l'utente da mailup
 				$this->leggiUtente($observer);
 				//rileggo lo status perché potrebbe essere stato modificato dalla precedente chiamata
 				$status = Mage::getModel('newsletter/subscriber')->loadByEmail($model->getEmail())->getStatus();
 				// se non sono iscritto nemmeno lato mailup allora posso evitare di andare oltre
-				if (!$status) return $this;
+				if ( ! $status) {
+                    return $this;
+                }
 			}
 		}
 		
-		$console = Mage::getStoreConfig('newsletter/mailup/url_console');
-		$listId = Mage::getStoreConfig('newsletter/mailup/list');
+		$console = Mage::getStoreConfig('mailup_newsletter/mailup/url_console');
+		$listId = Mage::getStoreConfig('mailup_newsletter/mailup/list');
 
 		try {
 			$wsImport = new MailUpWsImport();
@@ -162,7 +184,7 @@ class SevenLike_MailUp_Model_Observer
 					break;
 				}
 			}
-			if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log("STATO ISCRIZIONE: $status");
+			if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) Mage::log("STATO ISCRIZIONE: $status");
 			if ($status == 1) {
 				$ws  = "http://{$console}/frontend/Xmlsubscribe.aspx";
 			} else {
@@ -174,9 +196,13 @@ class SevenLike_MailUp_Model_Observer
 			$ws .= "&Email=" . rawurlencode($model->getEmail());
 
 			try {
-				if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log("mailup invio utente $ws");
+				if(Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) {
+                    Mage::log("mailup invio utente $ws");
+                }
 				$result = @file_get_contents($ws);
-				if (Mage::getStoreConfig('newsletter/mailup/enable_log')) Mage::log("mailup risultato invio $result");
+				if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) {
+                    Mage::log("mailup risultato invio $result");
+                }
 			} catch (Exception $e) {}
 		} catch (Exception $e) {
 			Mage::logException($e);
@@ -185,33 +211,38 @@ class SevenLike_MailUp_Model_Observer
 		return $this;
 	}
 
+    /**
+     * Config Check
+     * 
+     * @return type
+     */
 	public function configCheck()
 	{
-		$url_console = Mage::getStoreConfig('newsletter/mailup/url_console');
-		$user = Mage::getStoreConfig('newsletter/mailup/username_ws');
-		$password = Mage::getStoreConfig('newsletter/mailup/password_ws');
-		$list = Mage::getStoreConfig('newsletter/mailup/list');
+		$url_console = Mage::getStoreConfig('mailup_newsletter/mailup/url_console');
+		$user = Mage::getStoreConfig('mailup_newsletter/mailup/username_ws');
+		$password = Mage::getStoreConfig('mailup_newsletter/mailup/password_ws');
+		$list = Mage::getStoreConfig('mailup_newsletter/mailup/list');
 
 		if (!strlen($url_console) or !strlen($user) or !strlen($password) or !strlen($list)) {
 			$url = Mage::getModel('adminhtml/url');
-			$url = $url->getUrl("adminhtml/system_config/edit", array(
-				"section" => "newsletter"
-			));
+			$url = $url->getUrl("mailup/adminhtml_configuration");
 			$message = Mage::helper("mailup")->__('MailUp configuration is not complete');
 			$message = str_replace("href=''", "href='$url'", $message);
 			Mage::getSingleton('adminhtml/session')->addWarning($message);
-			return;
+			
+            return;
 		}
 
 		$wsimport = new MailUpWsImport();
 		$mapping = $wsimport->getFieldsMapping();
 		if (empty($mapping)) {
 			$url = Mage::getModel('adminhtml/url');
-			$url = $url->getUrl("mailup/adminhtml_fieldsmapping");
+			$url = $url->getUrl("mailup/adminhtml_configuration");
 			$message = Mage::helper("mailup")->__('MailUp fields mapping is not complete');
 			$message = str_replace("href=''", "href='$url'", $message);
 			Mage::getSingleton('adminhtml/session')->addWarning($message);
-			return;
+			
+            return;
 		}
 	}
 
@@ -226,36 +257,89 @@ class SevenLike_MailUp_Model_Observer
         }
 	}
 
+    /**
+     * Attach to sales_order_save_after event
+     * 
+     * @see     sales_order_save_after
+     * @param   type $observer
+     */
 	public function prepareOrderForDataSync($observer)
 	{
+        if(Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) {
+            Mage::log("TRIGGERED prepareOrderForDataSync");
+        }
+        
 		$order = $observer->getEvent()->getOrder();
+        /* @var $order Mage_Sales_Model_Order */
 		$customer_id = $order->getCustomerId();
-		if ($customer_id) self::setCustomerForDataSync($customer_id);
+        
+        $customer = Mage::getmodel('customer/customer')->load($customer_id);
+        //$storeId = $customer->getStoreId(); // Is this always correct??
+        $storeId = $order->getStoreId();
+        
+		if($customer_id) {
+            self::setCustomerForDataSync($customer_id, $storeId);
+        }
 	}
 
+    /**
+     * Attach to customer_save_after even
+     * 
+     * @see     customer_save_after
+     */
 	public function prepareCustomerForDataSync($observer)
-	{
+	{        
+        if(Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) {
+            Mage::log("TRIGGERED prepareCustomerForDataSync");
+        }
+        
 		$customer = $observer->getEvent()->getCustomer();
 		$customer_id = $customer->getId();
-		if ($customer_id) self::setCustomerForDataSync($customer_id);
+        $storeId = $customer->getStoreId(); // Is this always correct??
+        /**
+         * Possibly getting issues here with store id not being right...
+         */
+		if($customer_id) {
+            self::setCustomerForDataSync($customer_id, $storeId);
+        }
 	}
 
-	private static function setCustomerForDataSync($customer_id)
+    /**
+     * Add custom data to sync table
+     * 
+     * @param   int
+     * @param   int
+     * @return  boolean
+     */
+	private static function setCustomerForDataSync($customer_id, $storeId = NULL)
 	{
-		if (!$customer_id) return false;
+        if(Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) {
+            Mage::log("TRIGGERED setCustomerForDataSync, Store ID: {$storeId}");
+        }
+        
+        if( ! isset($storeId)) {
+            $storeId = Mage::app()->getStore()->getId();
+        }
+        
+		if( ! $customer_id) {
+            return false;
+        }
 
 		$db_write = Mage::getSingleton('core/resource')->getConnection('core_write');
 		try {
 			$db_write->insert("mailup_sync", array(
-				"customer_id" => $customer_id,
-				"entity" => "customer",
-				"job_id" => 0,
-				"needs_sync" => true,
-				"last_sync" => null
+                'store_id'      => $storeId,
+				"customer_id"   => $customer_id,
+				"entity"        => "customer",
+				"job_id"        => 0,
+				"needs_sync"    => true,
+				"last_sync"     => null
 			));
-		} catch (Exception $e) {
+		} 
+        catch (Exception $e) {
 			$db_write->update("mailup_sync", array(
-				"needs_sync" => true
+                'store_id'      => $storeId,
+				"needs_sync"    => true
 			), "customer_id=$customer_id AND entity='customer' AND job_id=0");
 		}
 

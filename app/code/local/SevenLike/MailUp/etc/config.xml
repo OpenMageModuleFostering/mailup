@@ -3,7 +3,7 @@
 <config>
     <modules>
         <SevenLike_MailUp>
-            <version>2.2.0</version>
+            <version>2.3.1</version>
         </SevenLike_MailUp>
     </modules>
 
@@ -12,6 +12,26 @@
             <mailup>
                 <class>SevenLike_MailUp_Model</class>
             </mailup>
+            <!-- Override Subscriber so we can disable Notifiactions -->
+            <newsletter>
+				<rewrite>
+					<subscriber>SevenLike_MailUp_Model_Subscriber</subscriber>
+				</rewrite>
+			</newsletter>
+            
+            <!--<mailup>
+                <class>SevenLike_MailUp_Model</class>
+                <resourceModel>mailup_mysql4</resourceModel>
+            </mailup>
+            <mailup_mysql4>
+                <class>SevenLike_MailUp_Model_Mysql4</class>
+                <entities>
+                    <job>
+                        <table>mailup_sync_jobs</table>
+                    </job>
+                </entities>
+            </mailup_mysql4>-->
+            
         </models>
         <blocks>
             <mailup>
@@ -123,11 +143,12 @@
     </admin>
 
     <default>
-        <newsletter>
+        <mailup_newsletter>
             <mailup>
                 <model>mailup/ws</model>
+                <disablenewslettersuccesses>1</disablenewslettersuccesses>
             </mailup>
-        </newsletter>
+        </mailup_newsletter>
     </default>
 
     <adminhtml>
@@ -138,7 +159,7 @@
                         <title>MailUp</title>
                         <children>
 	                        <mailup_configuration translate="title">
-		                        <title>Connect to MailUp</title>
+		                        <title><![CDATA[Settings & Field Mapping]]></title>
 		                        <action>mailup/adminhtml_configuration</action>
 		                        <sort_order>100</sort_order>
 			                </mailup_configuration>
@@ -147,18 +168,6 @@
                                 <action>mailup/adminhtml_filter</action>
                                 <sort_order>200</sort_order>
                             </mailup_filters>
-                            <mailup_fieldsmapping translate="title">
-                                <title>Fields mapping</title>
-                                <action>mailup/adminhtml_fieldsmapping</action>
-                                <sort_order>300</sort_order>
-                            </mailup_fieldsmapping>
-	                        <!--
-	                        <mailup_viewdatatransferlog translate="title">
-		                        <title>View data transfer log</title>
-		                        <action>mailup/adminhtml_viewdatatransferlog</action>
-		                        <sort_order>400</sort_order>
-	                        </mailup_viewdatatransferlog>
-	                        -->
                         </children>
                     </mailup>
                 </children>
@@ -192,6 +201,19 @@
 								</mailup>
                             </children>
                         </newsletter>
+
+                        <system>
+                            <children>
+                                <config>
+                                    <children>
+                                        <mailup_newsletter>
+                                            <title>Mailup Newsletter</title>
+                                        </mailup_newsletter>
+                                    </children>
+                                </config>
+                            </children>
+                        </system>
+                        
                     </children>
                 </admin>
             </resources>
@@ -213,7 +235,19 @@
             </modules>
         </translate>
     </adminhtml>
+    
 	<frontend>
+        
+        <!--<routers>
+            <mailup>
+                <use>standard</use>
+                <args>
+                    <module>SevenLike_MailUp</module>
+                    <frontName>mailup</frontName>
+                </args>
+            </mailup>
+        </routers>-->
+        
 		<translate>
 			<modules>
 				<mailup>
@@ -223,6 +257,7 @@
 				</mailup>
 			</modules>
 		</translate>
+        
 		<layout>
 			<updates>
 				<mailup>

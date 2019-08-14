@@ -1,14 +1,16 @@
 <?xml version="1.0"?>
 <layout>
+    
     <mailup_adminhtml_filter_index>
         <update handle="mailup_adminhtml_index"/>
         <reference name="content">
-            <block type="adminhtml/template" name="filter" template="sevenlike/mailup/filter.phtml"/>
+            <block type="mailup/filters" name="filter" template="sevenlike/mailup/filter.phtml"/>
         </reference>
         <reference name="head">
             <action method="addCss"><stylesheet>sevenlike/mailup/mailup.css</stylesheet></action>
         </reference>
     </mailup_adminhtml_filter_index>
+    
     <mailup_adminhtml_filter_confirm>
         <update handle="mailup_adminhtml_confirm"/>
         <reference name="content">
@@ -18,6 +20,7 @@
             <action method="addCss"><stylesheet>sevenlike/mailup/mailup.css</stylesheet></action>
         </reference>
     </mailup_adminhtml_filter_confirm>
+    
     <mailup_adminhtml_fieldsmapping_index>
         <update handle="mailup_adminhtml_index" />
         <reference name="content">
@@ -27,6 +30,7 @@
             <action method="addCss"><stylesheet>sevenlike/mailup/mailup.css</stylesheet></action>
         </reference>
     </mailup_adminhtml_fieldsmapping_index>
+    
 	<mailup_adminhtml_viewdatatransferlog_index>
 		<update handle="mailup_adminhtml_index" />
 		<reference name="content">
@@ -36,6 +40,7 @@
 			<action method="addCss"><stylesheet>sevenlike/mailup/mailup.css</stylesheet></action>
 		</reference>
 	</mailup_adminhtml_viewdatatransferlog_index>
+    
 	<mailup_adminhtml_viewdatatransferlog_search>
 		<update handle="mailup_adminhtml_index" />
 		<reference name="content">
@@ -45,4 +50,12 @@
 			<action method="addCss"><stylesheet>sevenlike/mailup/mailup.css</stylesheet></action>
 		</reference>
 	</mailup_adminhtml_viewdatatransferlog_search>
+    
+    <!-- works but need a better image.. -->
+    <!--<default>
+        <reference name="head">
+			<action method="addCss"><stylesheet>sevenlike/mailup/mailup.css</stylesheet></action>
+		</reference>
+    </default>-->
+    
 </layout>

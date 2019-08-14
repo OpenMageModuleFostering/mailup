@@ -1,6 +1,13 @@
 <?php
-
-$allmagentofields = array("Name", "Last", "Email", "Company", "Address", "City", "ZIP", "Province", "Region", "Country", "Gender", "DateOfBirth", "CustomerID", "Phone", "Fax", "LatestOrderID", "LatestOrderDate", "LatestOrderAmount", "LatestOrderProductIDs", "LatestOrderCategoryIDs", "LatestShippedOrderDate", "LatestShippedOrderID", "LatestAbandonedCartDate", "LatestAbandonedCartTotal", "LatestAbandonedCartID", "TotalOrdered", "TotalOrderedLast12m", "TotalOrderedLast30d", "AllOrderedProductIDs");
+/**
+ * @depreciated
+ */
+$allmagentofields = array(
+    "Name", "Last", "Email", "Company", "Address", "City", "ZIP", "Province", "Region", "Country", "Gender", "DateOfBirth", "CustomerID", 
+    "Phone", "Fax", "LatestOrderID", "LatestOrderDate", "LatestOrderAmount", "LatestOrderProductIDs", "LatestOrderCategoryIDs", 
+    "LatestShippedOrderDate", "LatestShippedOrderID", "LatestAbandonedCartDate", "LatestAbandonedCartTotal", 
+    "LatestAbandonedCartID", "TotalOrdered", "TotalOrderedLast12m", "TotalOrderedLast30d", "AllOrderedProductIDs"
+);
 $wsSend = new MailUpWsSend();
 $accessKey = $wsSend->loginFromId();
 
@@ -12,7 +19,6 @@ if ($accessKey === false) {
 	$wsSend = new MailUpWsSend();
 	// campi che arrivano da mailup
 	$wsFields = $wsSend->getFields($accessKey);
-
     //carico i mapping salvati
     $fields = $wsImport->getFieldsMapping();
 ?>

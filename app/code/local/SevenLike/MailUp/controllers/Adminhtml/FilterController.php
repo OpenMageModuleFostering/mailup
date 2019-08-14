@@ -4,7 +4,11 @@ require_once dirname(__FILE__) . "/../../Model/MailUpWsImport.php";
 require_once dirname(__FILE__) . "/../../Model/Wssend.php";
 class SevenLike_MailUp_Adminhtml_FilterController extends Mage_Adminhtml_Controller_Action
 {
-    public function indexAction() {
+    /**
+     * Default Action
+     */
+    public function indexAction()
+    {        
 	    $this->checkRunningImport();
         $this->loadLayout()->renderLayout();
     }
@@ -14,7 +18,13 @@ class SevenLike_MailUp_Adminhtml_FilterController extends Mage_Adminhtml_Control
 	    $this->loadLayout()->renderLayout();
     }
     
-    public function csvAction() {
+    /**
+     * Generate CSV
+     * 
+     * @todo    include stores
+     */
+    public function csvAction() 
+    {
 	    $post = $this->getRequest()->getPost();
         $file = '';
 
@@ -27,7 +37,7 @@ class SevenLike_MailUp_Adminhtml_FilterController extends Mage_Adminhtml_Control
 
             //CSV Column names
             $file = '"Email","First Name","Last Name"';
-            if (Mage::getStoreConfig('newsletter/mailup/enable_mailup_synchro') == 1) {
+            if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_mailup_synchro') == 1) {
                 $file .= ',"Company","City","Province","Zip code","Region","Country code","Address","Fax","Phone","Customer id"';
                 $file .= ',"Last Order id","Last Order date","Last Order total","Last order product ids","Last order category ids"';
                 $file .= ',"Last sent order date","Last sent order id"';
@@ -45,7 +55,7 @@ class SevenLike_MailUp_Adminhtml_FilterController extends Mage_Adminhtml_Control
                         $file .= ',"'.((!empty($subscriber['nome'])) ? $subscriber['nome'] : '') .'"';
                         $file .= ',"'.((!empty($subscriber['cognome'])) ? $subscriber['cognome'] : '') .'"';
 
-                        $synchroConfig = Mage::getStoreConfig('newsletter/mailup/enable_mailup_synchro') == 1;
+                        $synchroConfig = Mage::getStoreConfig('mailup_newsletter/mailup/enable_mailup_synchro') == 1;
 
                         $file .= ',"'. ($synchroConfig && (!empty($subscriber['azienda'])) ? $subscriber['azienda'] : '') .'"';
                         $file .= ',"'. ($synchroConfig && (!empty($subscriber['città'])) ? $subscriber['città'] : '') .'"';
@@ -64,9 +74,11 @@ class SevenLike_MailUp_Adminhtml_FilterController extends Mage_Adminhtml_Control
                         $file .= ',"'. ($synchroConfig && (!empty($subscriber['IDCategorieUltimoOrdine'])) ? $subscriber['IDCategorieUltimoOrdine'] : '') .'"';
                         $file .= ',"'. ($synchroConfig && (!empty($subscriber['DataUltimoOrdineSpedito'])) ? $subscriber['DataUltimoOrdineSpedito'] : '') .'"';
                         $file .= ',"'. ($synchroConfig && (!empty($subscriber['IDUltimoOrdineSpedito'])) ? $subscriber['IDUltimoOrdineSpedito'] : '') .'"';
+                        
                         $file .= ',"'. ($synchroConfig && (!empty($subscriber['DataCarrelloAbbandonato'])) ? $subscriber['DataCarrelloAbbandonato'] : '') .'"';
                         $file .= ',"'. ($synchroConfig && (!empty($subscriber['TotaleCarrelloAbbandonato'])) ? $subscriber['TotaleCarrelloAbbandonato'] : '') .'"';
                         $file .= ',"'. ($synchroConfig && (!empty($subscriber['IDCarrelloAbbandonato'])) ? $subscriber['IDCarrelloAbbandonato'] : '') .'"';
+                        
                         $file .= ',"'. ($synchroConfig && (!empty($subscriber['TotaleFatturato'])) ? $subscriber['TotaleFatturato'] : '') .'"';
                         $file .= ',"'. ($synchroConfig && (!empty($subscriber['TotaleFatturatoUltimi12Mesi'])) ? $subscriber['TotaleFatturatoUltimi12Mesi'] : '') .'"';
                         $file .= ',"'. ($synchroConfig && (!empty($subscriber['TotaleFatturatoUltimi30gg'])) ? $subscriber['TotaleFatturatoUltimi30gg'] : '') .'"';
@@ -85,8 +97,13 @@ class SevenLike_MailUp_Adminhtml_FilterController extends Mage_Adminhtml_Control
 	    echo $file;
     }
     
-    public function postAction() {
+    /**
+     * Handle Posted Data
+     */
+    public function postAction() 
+    {
         $post = $this->getRequest()->getPost();
+        $storeId = isset($post['store_id']) ? (int)$post['store_id'] : NULL;
 
         try {
             if (empty($post)) {
@@ -97,7 +114,7 @@ class SevenLike_MailUp_Adminhtml_FilterController extends Mage_Adminhtml_Control
 	        $post["mailupNewGroupName"] = trim($post["mailupNewGroupName"]);
 	        if ($post["mailupNewGroup"] and strlen($post["mailupNewGroupName"])) {
 		        require_once dirname(__FILE__) . "/../../Model/MailUpWsImport.php";
-		        $wsImport = new MailUpWsImport();
+		        $wsImport = new MailUpWsImport($storeId);
 		        $post['mailupGroupId'] = $wsImport->CreaGruppo(array(
 			        "idList" => $post['mailupIdList'],
 			        "listGUID" => $post['mailupListGUID'],
@@ -108,10 +125,11 @@ class SevenLike_MailUp_Adminhtml_FilterController extends Mage_Adminhtml_Control
 	        // inserisco il job
 	        $db_write = Mage::getSingleton('core/resource')->getConnection('core_write');
 	        $db_write->insert("mailup_sync_jobs", array(
-		        "mailupgroupid" => $post['mailupGroupId'],
-		        "send_optin" => $post['send_optin_email_to_new_subscribers'] ? 1 : 0,
-		        "status" => "queued",
-		        "queue_datetime" => gmdate("Y-m-d H:i:s")
+		        "mailupgroupid"     => $post['mailupGroupId'],
+		        "send_optin"        => isset($post['send_optin_email_to_new_subscribers']) && ($post['send_optin_email_to_new_subscribers'] == 1)  ? 1 : 0,
+		        "status"            => "queued",
+		        "queue_datetime"    => gmdate("Y-m-d H:i:s"),
+                'store_id'          => $storeId,
 	        ));
 	        $job_id = $db_write->lastInsertId("mailup_sync_jobs");
 
@@ -120,11 +138,12 @@ class SevenLike_MailUp_Adminhtml_FilterController extends Mage_Adminhtml_Control
 	        foreach ($mailupCustomerIds as $customer_id) {
 		        try {
 			        $db_write->insert("mailup_sync", array(
-				        "customer_id" => $customer_id,
-				        "entity" => "customer",
-				        "job_id" => $job_id,
-				        "needs_sync" => true,
-				        "last_sync" => null
+				        "customer_id"       => $customer_id,
+				        "entity"            => "customer",
+				        "job_id"            => $job_id,
+				        "needs_sync"        => true,
+				        "last_sync"         => null,
+                        'store_id'          => $storeId,
 			        ));
 		        } catch (Exception $e) {
 			        $db_write->update("mailup_sync", array(
@@ -203,10 +222,34 @@ class SevenLike_MailUp_Adminhtml_FilterController extends Mage_Adminhtml_Control
         }
     }
 
+    /**
+     * Check if an import is currently running
+     * 
+     * @return type
+     */
 	public function checkRunningImport()
 	{
-		$db = Mage::getSingleton("core/resource")->getConnection("core_read");
+        $db = Mage::getSingleton("core/resource")->getConnection("core_read");
 		$cron_schedule_table = Mage::getSingleton("core/resource")->getTableName("cron_schedule");
+        
+        /**
+         * @todo    check if a cron has been run in the past X minites
+         *          notify if cron is npt up and running
+         */
+        $lastTime = $db->fetchOne("SELECT max(last_sync) FROM mailup_sync"); // 2013-04-18 19:23:55
+        if( ! empty($lastTime)) {
+            $dateTime = \DateTime::createFromFormat('Y-m-d H:i:s', $lastTime);
+            $lastTimeObject = clone $dateTime;
+            if($dateTime) {
+                $dateTime->modify('+30 minutes');
+                $now = new DateTime();
+                //if($dateTime < $now) {
+                    Mage::getSingleton("adminhtml/session")
+                        ->addNotice($this->__("Last Sync Performed: {$lastTimeObject->format('Y-m-d H:i:s e')}"))
+                    ;
+                //}
+            }
+        }
 
 		$running_processes = $db->fetchOne("SELECT count(*) FROM $cron_schedule_table WHERE job_code='sevenlike_mailup' AND status='running'");
 		if ($running_processes) {

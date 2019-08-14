@@ -1,8 +1,16 @@
 <?php
-//ottengo l'elenco delle liste e dei gruppi da mailup
-$wsImport = new MailUpWsImport();
+/**
+ * confirm.phtml
+ */
+$storeId = $this->getRequest()->getParam('store_id');
+if(empty($storeId)) {
+    $storeId = NULL; //Mage::app()->getDefaultStoreView()->getStoreId();
+}
 
-$customersFiltered = $wsImport->getCustomersFiltered($this);
+//ottengo l'elenco delle liste e dei gruppi da mailup
+$wsImport = new MailUpWsImport($storeId);
+
+$customersFiltered = $wsImport->getCustomersFiltered($this, $storeId);
 
 $xmlString = $wsImport->GetNlList();
 $xmlString = html_entity_decode($xmlString);
@@ -19,6 +27,7 @@ $xml = simplexml_load_string($xmlLists);
 <?php //creo il form nascosto per passare i parametri al tasto back ?>
 <form id="back_form" name="back_form" method="post" action="<?php echo $this->getUrl('*/*/'); ?>">
     <input name="form_key" type="hidden" value="<?php echo Mage::getSingleton('core/session')->getFormKey() ?>" />
+    <input type="hidden" name="store_id" value="<?php echo $this->getRequest()->getParam('store_id'); ?>" />
     <input type="hidden" name="mailupCustomers" value="<?php echo $this->getRequest()->getParam('mailupCustomers'); ?>" />
     <input type="hidden" name="mailupProductSku" value="<?php echo $this->getRequest()->getParam('mailupProductSku'); ?>" />
     <input type="hidden" name="mailupCategoryId" value="<?php echo $this->getRequest()->getParam('mailupCategoryId'); ?>" />
@@ -37,6 +46,7 @@ $xml = simplexml_load_string($xmlLists);
 
 <form id="csv_form" name="csv_form" method="post" action="<?php echo $this->getUrl('*/*/csv'); ?>">
     <input name="form_key" type="hidden" value="<?php echo Mage::getSingleton('core/session')->getFormKey() ?>" />
+    <input type="hidden" name="store_id" value="<?php echo $this->getRequest()->getParam('store_id'); ?>" />
     <?php
     $countPost = 0;
     $textArea = '';
@@ -62,24 +72,27 @@ $xml = simplexml_load_string($xmlLists);
             <td class="a-right">
 	            <div id="mailuploading" class="mailuploading"><?php echo $this->__("Please wait for the next step to load") ?></div>
 	            <button id="mailupback" onclick="back_form.submit()" class="scalable back" type="button"><span><?php echo $this->__('Reset filters')?></span></button>
-                <button onclick="$$('.content-header-floating').invoke('setStyle', {visibility:'hidden'});document.getElementById('mailupsend').style.display='none';document.getElementById('mailupback').style.display='none';document.getElementById('mailuploading').style.display='block';editForm.submit()" class="scalable save" type="button" id="mailupsend"><span><?php echo $this->__('Send to MailUp')?></span></button>
+                <button onclick="$$('.content-header-floating').invoke('setStyle', {visibility:'hidden'});document.getElementById('mailupsend').style.display='none';document.getElementById('mailupback').style.display='none';document.getElementById('mailuploading').style.display='block';editForm.submit()" 
+                        class="scalable save" type="button" id="mailupsend">
+                    <span><?php echo $this->__('Send to MailUp')?></span>
+                </button>
             </td>
         </tr>
     </table>
 </div>
 <div class="entry-edit">	
-	<?php
-	//gestisco la lista selezionata in configurazione
-	foreach($xml->List as $list) {
-		if ($list['idList'] == Mage::getStoreConfig('newsletter/mailup/list')) {
-			$listName = $list['listName'];
-			$idList = $list['idList'];
-			$listGUID = $list['listGUID'];
-		}
-	}
-	?>
+	<?php foreach($xml->List as $list) : ?>
+        <?php /* @var $list SimpleXMLElement */ ?>
+        <?php $listId = (string) $list['idList'] ?>
+        <?php if($listId == Mage::getStoreConfig('mailup_newsletter/mailup/list', $storeId)): ?>
+            <?php $listName = (string) $list['listName'] ?>
+            <?php $idList = (string) $list['idList'] ?>
+            <?php $listGUID = (string) $list['listGUID'] ?>
+        <?php endif ?>
+	<?php endforeach ?>
     <form id="edit_form" name="edit_form" method="post" action="<?php echo $this->getUrl('*/*/post')?>">
         <input name="form_key" type="hidden" value="<?php echo Mage::getSingleton('core/session')->getFormKey() ?>" />
+        <input type="hidden" name="store_id" value="<?php echo $this->getRequest()->getParam('store_id'); ?>" />
 	    <input name="mailupIdList" type="hidden" value="<?php echo $idList; ?>" />
 	    <input name="mailupListGUID" type="hidden" value="<?php echo $listGUID; ?>" />
 	
@@ -123,7 +136,7 @@ $xml = simplexml_load_string($xmlLists);
                     <?php
                     $groups = array();
                     foreach($xml->List as $list) {
-                        if ($list['idList'] == Mage::getStoreConfig('newsletter/mailup/list')){
+                        if ($list['idList'] == Mage::getStoreConfig('mailup_newsletter/mailup/list', $storeId)){
                             foreach($list->Groups->Group as $group) {
 	                            $groups[(string)$group['idGroup']] = (string)$group['groupName'];
                             }

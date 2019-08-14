@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * @deprectiated
+ */
 require_once dirname(__FILE__) . "/../../Model/MailUpWsImport.php";
 require_once dirname(__FILE__) . "/../../Model/Wssend.php";
 class SevenLike_MailUp_Adminhtml_FieldsMappingController extends Mage_Adminhtml_Controller_Action
