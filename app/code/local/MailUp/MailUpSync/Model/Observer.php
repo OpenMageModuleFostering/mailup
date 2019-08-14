@@ -207,11 +207,13 @@ class MailUp_MailUpSync_Model_Observer
         ) {
             // Always change the status
             $model->setStatus(Mage_Newsletter_Model_Subscriber::STATUS_UNCONFIRMED);
-            // Ensure that (if called as singleton), this will only get called once per customer
-            if (!isset($this->_beforeSaveCalled[$model->getEmail()])) {
-                Mage::getSingleton('core/session')->addNotice(Mage::helper("mailup")->__("Your subscription is waiting for confirmation"));
-                $this->_beforeSaveCalled[$model->getEmail()] = true;
-            }
+        }
+
+        // Check whether there is a status to change
+        $origModel = Mage::getModel('newsletter/subscriber')->load($model->getId());
+        if ($origModel->getStatus() == $model->getStatus()) {
+            $model->setDoNotChangeSubscription(true);
+            return;
         }
     }
     
@@ -232,7 +234,17 @@ class MailUp_MailUpSync_Model_Observer
         }
         $this->_afterSaveCalled[$model->getEmail()] = true;
 
-        if(Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) {
+        // If there is no change to status, do not subscribe/unsubscribe
+        if ($model->getDoNotChangeSubscription()) {
+            return $this;
+        }
+
+        // If the status has changed, and it is now unconfirmed, set notification
+        if ($model->getStatus() == Mage_Newsletter_Model_Subscriber::STATUS_UNCONFIRMED) {
+            Mage::getSingleton('core/session')->addNotice(Mage::helper("mailup")->__("Your subscription is waiting for confirmation"));
+        }
+
+        if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) {
             Mage::log($model->getData());
         }
         $subscriber = Mage::getModel('newsletter/subscriber')->loadByEmail($model->getEmail());
@@ -431,12 +443,12 @@ class MailUp_MailUpSync_Model_Observer
     /**
      * Attach to customer_save_after even
      * 
-     * Track if we've synced this run, only do it ocne.
+     * Track if we've synced this run, only do it once.
      * This event can be triggers 3+ times per run as the customer
      * model is saved! we only want one Sync though.
      * 
      * @todo    refactor
-     * @see     customer_save_after
+     * @observes     customer_save_after
      */
 	public function prepareCustomerForDataSync($observer)
 	{        
@@ -466,18 +478,20 @@ class MailUp_MailUpSync_Model_Observer
 	}
 
     /**
-     * Add custom data to sync table
-     * 
-     * @param   int
-     * @param   int
-     * @return  boolean|null
+     * Add customer data to sync table and creates job if required
+     *
+     * @param $customerId
+     * @param null $storeId
+     * @return bool|null
+     * @throws Exception
      */
-	private static function setCustomerForDataSync($customerId, $storeId = NULL)
+    private static function setCustomerForDataSync($customerId, $storeId = NULL)
 	{
         if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) {
             Mage::log("TRIGGERED setCustomerForDataSync [StoreID:{$storeId}]");
         }
-        
+
+        // If no storeId specified, use current store
         if ( ! isset($storeId)) {
             $storeId = Mage::app()->getStore()->getId();
         }
@@ -501,28 +515,41 @@ class MailUp_MailUpSync_Model_Observer
             }
             return false;
         }
-        $job = Mage::getModel('mailup/job');
+
+        // If cron export is not enabled, skip data sync for this customer
+        if ( ! $config->isCronExportEnabled($storeId)) {
+            return null;
+        }
+
         /* @var $job MailUp_MailUpSync_Model_Job */
         
         /**
-         *  Only Sync if they are a subscriber!
+         *  Only Sync if they are a subscriber (or are waiting for confirmation)!
          */
-        if ( ! $helper->isSubscriber($customerId, $storeId)) {
+        if ( ! $helper->isSubscriberOrWaiting($customerId, $storeId)) {
             return null;
         }
 
         // Set options for those already subscribed (not pending and no opt-in)
-        $job->setData(array(
+        $data = array(
             'mailupgroupid'     => '',
             'send_optin'        => 0,
             'as_pending'        => 0,
             'status'            => 'queued',
-            'queue_datetime'    => gmdate('Y-m-d H:i:s'),
             'store_id'          => $storeId,
             'list_id'           => $listID,
             'list_guid'         => $listGuid,
-        ));
-        $job->setAsAutoSync();
+        );
+        // Find a matching job if exists
+        $job = Mage::getModel('mailup/job');
+        self::loadMatchingJob($job, $data);
+        // If no matching job, set data on new one
+        if (!$job->getId()) {
+            $job->setData($data);
+            $job->setQueueDatetime(gmdate('Y-m-d H:i:s'));
+            $job->setAsAutoSync();
+        }
+        // Save new or existing job
         try {
             $job->save();
             $config->dbLog("Job [Insert] [Group:NO GROUP] ", $job->getId(), $storeId);
@@ -532,37 +559,53 @@ class MailUp_MailUpSync_Model_Observer
             $config->log($e);
             throw $e;
         }
-        
+
+        // Add task - do this whether or not job is new
 		try {
+            // Check if task already exists for this customer
             $jobTask = Mage::getModel('mailup/sync');
-            /** @var $jobTask MailUp_MailUpSync_Model_Sync */
-			$jobTask->setData(array(
-                'store_id'      => $storeId,
-				'customer_id'   => $customerId,
-				'entity'        => 'customer',
-				'job_id'        => $job->getId(),
-				'needs_sync'    => true,
-				'last_sync'     => null,
-			));
-            $jobTask->save();
-            $config->dbLog("Sync [Insert] [customer] [{$customerId}]", $job->getId(), $storeId);
+            if ($jobTask->getIdByUniqueKey($customerId, $job->getId(), $storeId) == null) {
+                // If task does not exist, create and save
+                /** @var $jobTask MailUp_MailUpSync_Model_Sync */
+                $jobTask->setData(array(
+                    'store_id'      => $storeId,
+                    'customer_id'   => $customerId,
+                    'entity'        => 'customer',
+                    'job_id'        => $job->getId(),
+                    'needs_sync'    => true,
+                    'last_sync'     => null,
+                ));
+                $jobTask->save();
+                $config->dbLog("Sync [Insert] [customer] [{$customerId}]", $job->getId(), $storeId);
+            }
 		} 
         catch(Exception $e) {
             $config->dbLog("Sync [Insert] [customer] [FAILED] [{$customerId}]", $job->getId(), $storeId);
             $config->log($e);
             throw $e;
 		}
-        
-        /**
-         * @todo ADD CRON 
-         * 
-         * WE NEED TO ACTUALLY ADD A CRON JOB NOW!!
-         * 
-         * OR we use a separate Auto Sync job!!
-         */
 
 		return true;
 	}
+
+    /**
+     * Load job that matches data, or leave job as is
+     *
+     * @param MailUp_MailUpSync_Model_Job $job
+     * @param array $data
+     */
+    static function loadMatchingJob(&$job, $data)
+    {
+        $collection = Mage::getModel('mailup/job')->getCollection();
+        foreach ($data as $key => $value) {
+            $collection->addFieldToFilter($key, $value);
+        }
+
+        if ($collection->getSize() == 0)
+            return;
+
+        $job = $collection->getFirstItem();
+    }
     
     /**
      * Get the config

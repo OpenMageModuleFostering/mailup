@@ -70,4 +70,20 @@ class MailUp_MailUpSync_Model_Subscriber extends Mage_Newsletter_Model_Subscribe
     {
 		return Mage::getModel('mailup/config');
 	}
+
+    /**
+     * Return customer subscription status
+     *
+     * @return bool
+     */
+    public function isSubscribed()
+    {
+        if($this->getId() &&
+                $this->getStatus()==self::STATUS_SUBSCRIBED ||
+                $this->getStatus()==self::STATUS_UNCONFIRMED) {
+            return true;
+        }
+
+        return false;
+    }
 }

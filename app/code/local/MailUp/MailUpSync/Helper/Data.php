@@ -214,7 +214,17 @@ class MailUp_MailUpSync_Helper_Data extends Mage_Core_Helper_Abstract
                     $code = $attribute->getAttributeCode() . '_custom_customer_attributes';
                     $value = $customer->getData($attribute->getAttributeCode());
                     if ($attribute->usesSource()) {
-                        $toSend[$i][$code] = $attribute->getSource()->getOptionText($value);
+                        /* Attempt to get source model. As we cannot trust customers to have not leave broken
+                           attributes with invalid source models around, we will test this directly */
+                        $source = Mage::getModel($attribute->getSourceModel());
+                        if ($source == false) {
+                            if ($config->isLogEnabled()) {
+                                $config->log('Invalid source model for attribute ' . $attribute->getAttributeCode());
+                            }
+                            $toSend[$i][$code] = null;
+                        } else {
+                            $toSend[$i][$code] = $attribute->getSource()->getOptionText($value);
+                        }
                     } else {
                         $toSend[$i][$code] = $value;
                     }
@@ -585,13 +595,9 @@ class MailUp_MailUpSync_Helper_Data extends Mage_Core_Helper_Abstract
         }
         
         foreach($mappings as $mapTo => $mapFrom) {
-            if(isset($fields_mapping[$mapTo]) && ! empty($fields_mapping[$mapTo])) {
+            if (isset($fields_mapping[$mapTo]) && !empty($fields_mapping[$mapTo])) {
                 $mappedData[$fields_mapping[$mapTo]] = '<campo'.$fields_mapping[$mapTo].'>'. "<![CDATA[". $subscriber[$mapFrom] ."]]>". '</campo'.$fields_mapping[$mapTo].'>';
             }
-            elseif( ! empty($fields_mapping[$mapTo])) {
-                $mappedData[$fields_mapping[$mapTo]] = '<campo'.$fields_mapping[$mapTo].'>'. '"  "'. '</campo'.$fields_mapping[$mapTo].'>';
-            }
-            //else {}
         }
 
         // No point in continuing if there is no mapped data
@@ -915,7 +921,7 @@ class MailUp_MailUpSync_Helper_Data extends Mage_Core_Helper_Abstract
     }
     
     /**
-     * Is Someone a subscriber?
+     * Is someone a subscriber?
      * 
      * @param   int
      * @param   int
@@ -923,12 +929,48 @@ class MailUp_MailUpSync_Helper_Data extends Mage_Core_Helper_Abstract
      */
     public function isSubscriber($customerId, $storeId)
     {
+        $statuses = array(
+            Mage_Newsletter_Model_Subscriber::STATUS_SUBSCRIBED
+        );
+        return $this->_isSubscriberInStatus($customerId, $statuses, $storeId);
+    }
+
+    /**
+     * Is someone a subscriber or unconfirmed?
+     *
+     * @param   int
+     * @param   int
+     * @return  bool
+     */
+    public function isSubscriberOrWaiting($customerId, $storeId)
+    {
+        $statuses = array(
+            Mage_Newsletter_Model_Subscriber::STATUS_SUBSCRIBED,
+            Mage_Newsletter_Model_Subscriber::STATUS_UNCONFIRMED
+        );
+        return $this->_isSubscriberInStatus($customerId, $statuses, $storeId);
+    }
+
+    /**
+     * Is the given customer a subscriber with the given status?
+     * Note that an empty set of statuses will just return true
+     *
+     * @param $customerId
+     * @param array $statuses
+     * @param $storeId
+     * @return bool|mixed
+     */
+    protected function _isSubscriberInStatus($customerId, array $statuses, $storeId)
+    {
         $customerId = (int) $customerId;
         $storeId = (int) $storeId;
+
+        // If no status set given, just return true
+        if (empty($statuses))
+            return true;
+
         $table = Mage::getSingleton('core/resource')->getTableName('newsletter_subscriber');
-        $connection = Mage::getSingleton('core/resource')->getConnection('core_read'); 
-        //$sql = "SELECT * FROM {$table} WHERE customer_id = '{$customerId}' AND store_id = '{$storeId}'";
-        // Issue with magento, it seems to only subscribe on a websote leve, not store level!
+        $connection = Mage::getSingleton('core/resource')->getConnection('core_read');
         $sql = "SELECT * FROM {$table} WHERE customer_id = '{$customerId}'";
         try {
             $result = $connection->fetchAll($sql); // array
@@ -936,14 +978,15 @@ class MailUp_MailUpSync_Helper_Data extends Mage_Core_Helper_Abstract
                 return FALSE;
             }
             $result = $result[0];
-            
-            return $result['subscriber_status'] == Mage_Newsletter_Model_Subscriber::STATUS_SUBSCRIBED;
-        } 
+
+            // Return whether status is in given set
+            return (array_search($result['subscriber_status'], $statuses) !== false);
+        }
         catch(Exception $e){
             Mage::log($e->getMessage());
         }
-        
-        return FALSE;
+
+        return false;
     }
     
     /**
@@ -961,13 +1004,6 @@ class MailUp_MailUpSync_Helper_Data extends Mage_Core_Helper_Abstract
             "created_at"    => gmdate("Y-m-d H:i:s"),
             "scheduled_at"  => $when
         ));
-        
-        /*$schedule = Mage::getModel('cron/schedule');
-        $schedule->setJobCode($jobCode)
-            ->setCreatedAt($timecreated)
-            ->setScheduledAt($timescheduled)
-            ->setStatus(Mage_Cron_Model_Schedule::STATUS_PENDING)
-            ->save();*/
     }
     
     /**

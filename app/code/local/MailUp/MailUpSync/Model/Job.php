@@ -134,6 +134,28 @@ class MailUp_MailUpSync_Model_Job extends Mage_Core_Model_Abstract
         
         return $collection;
     }
+
+    /**
+     * Get a collection of jobs in the Queue marked as Queued or Started
+     *
+     * @param   int
+     * @return  MailUp_MailUpSync_Model_Mysql4_Job_Collection
+     */
+    public function fetchQueuedOrStartedJobsCollection($type = NULL)
+    {
+        $collection = $this->getCollection();
+        /* @var $collection MailUp_MailUpSync_Model_Mysql4_Job_Collection */
+        $collection
+            ->addFieldToSelect('*')
+            ->addFieldToFilter('status', array('in' => array(self::STATUS_QUEUED, self::STATUS_STARTED)))
+        ;
+
+        if($type !== NULL) {
+            $collection->addFieldToFilter('type', array('eq' => (int) $type));
+        }
+
+        return $collection;
+    }
     
     /**
      * Get a collection of jobs in the Queue
@@ -185,5 +207,15 @@ class MailUp_MailUpSync_Model_Job extends Mage_Core_Model_Abstract
         $this->setType(self::TYPE_MANUAL_SYNC);
         
         return $this;
+    }
+
+    /**
+     * Whether job is an auto-sync job or manual
+     *
+     * @return bool
+     */
+    public function isAutoSync()
+    {
+        return ((int)$this->getType() === self::TYPE_AUTO_SYNC);
     }
 }
