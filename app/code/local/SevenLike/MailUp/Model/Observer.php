@@ -12,6 +12,7 @@ class SevenLike_MailUp_Model_Observer
     protected $_config;
 
     protected $_beforeSaveCalled = array();
+    protected $_authenticationCalled = array();
     protected $_afterSaveCalled = array();
     
     /**
@@ -121,6 +122,9 @@ class SevenLike_MailUp_Model_Observer
 			$stato_registrazione = (string)$xml->Canali->Email;
 			if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) Mage::log("stato registrazione: " . $stato_registrazione);
 			if ($stato_registrazione) {
+                // Ensure that before_save does not fire
+                $this->_authenticationCalled[$model->getEmail()] = true;
+                // Set subscription based on returned $stato_registrazione
 				switch (strtolower($stato_registrazione)) {
 					case "iscritto":
 						Mage::getModel('newsletter/subscriber')->loadByEmail($model->getEmail())->setStatus(Mage_Newsletter_Model_Subscriber::STATUS_SUBSCRIBED)->save();
@@ -157,7 +161,10 @@ class SevenLike_MailUp_Model_Observer
         $confirm = Mage::getStoreConfig('mailup_newsletter/mailup/require_subscription_confirmation');
 
         // If change is to subscribe, and confirmation required, set to confirmation pending
-        if ($model->getStatus() == Mage_Newsletter_Model_Subscriber::STATUS_SUBSCRIBED && $confirm) {
+        if (!isset($this->_authenticationCalled[$model->getEmail()]) &&
+            $model->getStatus() == Mage_Newsletter_Model_Subscriber::STATUS_SUBSCRIBED &&
+            $confirm
+        ) {
             // Always change the status
             $model->setStatus(Mage_Newsletter_Model_Subscriber::STATUS_UNCONFIRMED);
             // Ensure that (if called as singleton), this will only get called once per customer
