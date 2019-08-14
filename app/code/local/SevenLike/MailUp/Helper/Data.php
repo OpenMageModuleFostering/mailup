@@ -79,14 +79,15 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
                 }
             }
 
-            if($config->isLogEnabled()) {
+            if ($config->isLogEnabled()) {
                 $config->log('Customer with id '.$currentCustomerId);
             }
 			$customer = Mage::getModel('customer/customer')->load($currentCustomerId);
             /* @var $customer Mage_Customer_Model_Customer */
 			$i = $customer->getEmail();
 
-			//recupero gli ordini del cliente corrente
+			// Get order dates, numbers and totals for the current customer
+            //TODO: This would be more efficient with just a few SQL statements to gather this
 			$allOrdersTotalAmount = 0;
 			$allOrdersDateTimes = array();
 			$allOrdersTotals = array();
@@ -97,20 +98,20 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
 			$lastShipmentOrderId = null;
 			$lastShipmentOrderDate = null;
 
-            if($config->isLogEnabled()) {
+            if ($config->isLogEnabled()) {
                 $config->log('Parsing orders of customer with id '.$currentCustomerId);
             }
-			$orders = Mage::getModel('sales/order')
-				->getCollection()
-				->addAttributeToFilter('customer_id', $currentCustomerId)
-            ;
-			foreach($orders as $order) {
-                if($config->isLogEnabled()) {
-                    $config->log("ORDINE IN STATUS: " . $order->getStatus());
+            // Setup collection to fetch orders for this customer and valid statuses
+			$orders = Mage::getResourceModel('sales/order_collection')
+				->addAttributeToFilter('customer_id', $currentCustomerId);
+            Mage::helper('mailup/order')->addStatusFilterToOrders($orders);
+
+			foreach ($orders as $order) {
+                if ($config->isLogEnabled()) {
+                    $config->log("ORDER STATUS: {$order->getState()} / {$order->getStatus()}");
                 }
-				if( ! in_array($order->getStatus(), array("closed", "complete", "processing"))) { 
-                    continue;
-                }
+
+                // Get current and total orders
 				$currentOrderTotal = floatval($order->getGrandTotal());
 				$allOrdersTotalAmount += $currentOrderTotal;
 
@@ -202,6 +203,18 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
 				$toSend[$i]['cognome'] = $customer->getLastname();
 				$toSend[$i]['email'] = $customer->getEmail();
 				$toSend[$i]['IDCliente'] = $currentCustomerId;
+
+                // Custom customer attributes
+                $customerAttributes = Mage::helper('mailup/customer')->getCustomCustomerAttrCollection();
+                foreach ($customerAttributes as $attribute) {
+                    $code = $attribute->getAttributeCode() . '_custom_customer_attributes';
+                    $value = $customer->getData($attribute->getAttributeCode());
+                    if ($attribute->usesSource()) {
+                        $toSend[$i][$code] = $attribute->getSource()->getOptionText($value);
+                    } else {
+                        $toSend[$i][$code] = $value;
+                    }
+                }
 
 				$toSend[$i]['registeredDate'] = self::_retriveDateFromDatetime($customer->getCreatedAt());
 
@@ -330,7 +343,7 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
             if($config->isLogEnabled($storeId)) {
                 $config->log('generateAndSendCustomers [Empty Customer ID Array]');
             }
-            return FALSE;
+            return false;
         }
 
         $jobId = $post['id'];
@@ -340,11 +353,15 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
 		if ($accessKey === false) {
 			Mage::throwException('no access key returned');
 		}
-        
-		//$fields = $wsSend->GetFields($accessKey);
-		$fields_mapping = $wsImport->getFieldsMapping($storeId); // Pass StoreId
 
-		//definisco il gruppo a cui aggiungere gli iscritti
+		$fields_mapping = $wsImport->getFieldsMapping($storeId); // Pass StoreId
+        if (count($fields_mapping) == 0) {
+            if($config->isLogEnabled($storeId))
+                $config->log('No mappings set, so cannot sync customers');
+            return false;
+        }
+
+		// Define the group we're adding customers to
 		$groupId = $post['mailupGroupId'];
 		$listGUID = $post['mailupListGUID'];
 		$idList = $post['mailupIdList'];
@@ -382,12 +399,14 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
 		$totalCustomers = sizeof($mailupCustomerIds);
 		foreach ($mailupCustomerIds as $customerId) {
 			$subscribers_counter++;
-            $xmlData .= self::_getCustomerXml($customerId, $fields_mapping, $storeId);
+            $xmlCurrentCust = self::_getCustomerXml($customerId, $fields_mapping, $storeId);
+            if ($xmlCurrentCust !== false)
+                $xmlData .= $xmlCurrentCust;
 		}
 		/**
          * We have Valid Data to send
          */
-		if(strlen($xmlData)) {
+		if(strlen($xmlData) > 0) {
 			$importProcessData["xmlDoc"] = "<subscribers>$xmlData</subscribers>";
 			$xmlData = "";
 			$subscribers_counter = 0;
@@ -471,17 +490,17 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
     /**
      * Get a single customers XML data.
      * 
-     * @param   int
-     * @param   array
-     * @param   int
-     * @return  string
+     * @param   int $customerId
+     * @param   array $fields_mapping
+     * @param   int $storeId
+     * @return  string|false
      */
     protected static function _getCustomerXml($customerId, $fields_mapping, $storeId)
     {
         $config = Mage::getModel('mailup/config');
         /* @var $config SevenLike_Mailup_Model_Config */
         $xmlData = '';
-        $tmp = array();
+        $mappedData = array();
         $subscriber = self::getCustomersData(array($customerId));
         
         if(is_array($subscriber) && empty($subscriber)) {
@@ -514,8 +533,6 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
         
         /**
          * Map from Customer Data to Mailup Fields.
-         * 
-         * @todo Need to map Gener field
          */
         $mappings = array(
             'Name'                          => 'nome',
@@ -547,34 +564,47 @@ class SevenLike_MailUp_Helper_Data extends Mage_Core_Helper_Abstract
             'DateOfBirth'                   => 'DateOfBirth',
             'Gender'                        => 'Gender',
         );
+
+        // Add any custom customer attributes
+        $customerAttributes = Mage::helper('mailup/customer')->getCustomCustomerAttrCollection();
+        foreach ($customerAttributes as $attribute) {
+            $code = $attribute->getAttributeCode() . '_custom_customer_attributes';
+            $mappings[$code] = $code;
+        }
         
         foreach($mappings as $mapTo => $mapFrom) {
             if(isset($fields_mapping[$mapTo]) && ! empty($fields_mapping[$mapTo])) {
-                $tmp[$fields_mapping[$mapTo]] = '<campo'.$fields_mapping[$mapTo].'>'. "<![CDATA[". $subscriber[$mapFrom] ."]]>". '</campo'.$fields_mapping[$mapTo].'>';
+                $mappedData[$fields_mapping[$mapTo]] = '<campo'.$fields_mapping[$mapTo].'>'. "<![CDATA[". $subscriber[$mapFrom] ."]]>". '</campo'.$fields_mapping[$mapTo].'>';
             }
             elseif( ! empty($fields_mapping[$mapTo])) {
-                $tmp[$fields_mapping[$mapTo]] = '<campo'.$fields_mapping[$mapTo].'>'. '"  "'. '</campo'.$fields_mapping[$mapTo].'>';
+                $mappedData[$fields_mapping[$mapTo]] = '<campo'.$fields_mapping[$mapTo].'>'. '"  "'. '</campo'.$fields_mapping[$mapTo].'>';
             }
             //else {}
         }
 
-        $last_field = max(array_keys($tmp));
+        // No point in continuing if there is no mapped data
+        if (count($mappedData) == 0) {
+            if($config->isLogEnabled($storeId))
+                $config->log('No mappings set, so cannot sync customers');
+            return false;
+        }
+        $last_field = max(array_keys($mappedData));
         
         for($i=1; $i < $last_field; $i++) {
-            if( ! isset($tmp[$i]) && ! empty($i)) {
+            if( ! isset($mappedData[$i]) && ! empty($i)) {
                 /**
                  * If we leave a space it will blank the value out in mail up.
                  * if we leave it empty, it will leave the old value alone!
                  */
-                $tmp[$i] = "<campo{$i}>" ." ". "</campo{$i}>"; 
+                $mappedData[$i] = "<campo{$i}>" ." ". "</campo{$i}>";
             }
         }
         
-        ksort($tmp);
-        $tmp = implode("", $tmp);
+        ksort($mappedData);
+        $custDataStr = implode("", $mappedData);
         /**  All field values are handled as strings, character '|' (pipe) is not allowed and may lead to "-402" error codes **/
-        //$tmp = str_replace('|', '', $tmp);
-        $xmlData .= $tmp;
+        //$mappedData = str_replace('|', '', $mappedData);
+        $xmlData .= $custDataStr;
         $xmlData .= "</subscriber>\n";
 
         /**

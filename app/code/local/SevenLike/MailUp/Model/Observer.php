@@ -10,6 +10,9 @@ class SevenLike_MailUp_Model_Observer
      * @var SevenLike_MailUp_Model_Config
      */
     protected $_config;
+
+    protected $_beforeSaveCalled = array();
+    protected $_afterSaveCalled = array();
     
     /**
      * Save system config event
@@ -36,26 +39,45 @@ class SevenLike_MailUp_Model_Observer
      */
     protected function _getSchedule()
     {
+        // Get frequency and offset from posted data
         $data = Mage::app()->getRequest()->getPost('groups');
         $frequency = !empty($data['mailup']['fields']['mailup_cron_frequency']['value'])?
             $data['mailup']['fields']['mailup_cron_frequency']['value']:
+            SevenLike_MailUp_Model_Adminhtml_System_Source_Cron_Frequency::HOURLY;
+        $offset = !empty($data['mailup']['fields']['mailup_cron_offset']['value'])?
+            $data['mailup']['fields']['mailup_cron_offset']['value']:
             0;
 
-        switch ($frequency) {
-            case SevenLike_MailUp_Model_Adminhtml_System_Source_Cron_Frequency::DAILY:
-	            return "0 0 * * *";
-            case SevenLike_MailUp_Model_Adminhtml_System_Source_Cron_Frequency::EVERY_2_HOURS:
-	            return "0 0,2,4,6,8,10,12,14,16,18,20,22 * * *";
-            case SevenLike_MailUp_Model_Adminhtml_System_Source_Cron_Frequency::EVERY_6_HOURS:
-	            return "0 0,6,12,18 * * *";
-            case SevenLike_MailUp_Model_Adminhtml_System_Source_Cron_Frequency::EVERY_12_HOURS:
-	            return "0 0,12 * * *";
-	        case SevenLike_MailUp_Model_Adminhtml_System_Source_Cron_Frequency::HOURLY:
-		    default:
-		        return "0 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23 * * *";
+        // Get period between calls and calculate explicit hours using this and offset
+        $period = SevenLike_MailUp_Model_Adminhtml_System_Source_Cron_Frequency::getPeriod($frequency);
+        if ($period === null) {
+            Mage::log("MailUp: Could not find cron frequency in valid list. Defaulted to hourly", Zend_Log::ERR);
+            $period = 1;
         }
+        $hoursStr = $this->_calculateHourFreqString($period, $offset);
+
+        return "0 {$hoursStr} * * *";
     }
-    
+
+    /**
+     * Get comma-separated list of hours in a day spaced by $periodInHours and offset by
+     *   $offset hours. Note that if $offset is greater than $periodInHours then it loops (modulo)
+     *
+     * @param int $periodInHours Hours between each call
+     * @param int $offset Offset (in hours) for each entry
+     * @return string Comma-separated list of hours
+     */
+    private function _calculateHourFreqString($periodInHours, $offset)
+    {
+        $hours = array();
+        // Repeat as many times as the period fits into 24 hours
+        for ($n = 0; $n < (24 / $periodInHours); $n++)
+            $hours[] = $n * $periodInHours + ($offset % $periodInHours);
+        $hourStr = implode(',', $hours);
+
+        return $hourStr;
+    }
+
 	/**
      * Observes: customer_customer_authenticated
      * 
@@ -106,6 +128,7 @@ class SevenLike_MailUp_Model_Observer
 						$model->save();
 						break;
 					case "in attesa":
+                        Mage::getModel('newsletter/subscriber')->loadByEmail($model->getEmail())->setStatus(Mage_Newsletter_Model_Subscriber::STATUS_UNCONFIRMED)->save();
 						Mage::getSingleton('core/session')->addNotice(Mage::helper("mailup")->__("Your subscription is waiting for confirmation"));
 						break;
 					default:
@@ -120,26 +143,53 @@ class SevenLike_MailUp_Model_Observer
 
 		return $this;
 	}
+
+    /**
+     * Observes Before save, sets the status based on single or double opt-in
+     *
+     * @see     newsletter_subscriber_save_before
+     * @param   $observer
+     */
+    public function beforeSave($observer)
+    {
+        $model = $observer->getEvent()->getDataObject();
+
+        $confirm = Mage::getStoreConfig('mailup_newsletter/mailup/require_subscription_confirmation');
+
+        // If change is to subscribe, and confirmation required, set to confirmation pending
+        if ($model->getStatus() == Mage_Newsletter_Model_Subscriber::STATUS_SUBSCRIBED && $confirm) {
+            // Always change the status
+            $model->setStatus(Mage_Newsletter_Model_Subscriber::STATUS_UNCONFIRMED);
+            // Ensure that (if called as singleton), this will only get called once per customer
+            if (!isset($this->_beforeSaveCalled[$model->getEmail()])) {
+                Mage::getSingleton('core/session')->addNotice(Mage::helper("mailup")->__("Your subscription is waiting for confirmation"));
+                $this->_beforeSaveCalled[$model->getEmail()] = true;
+            }
+        }
+    }
     
 	/**
      * Observes subscription
      * 
      * @see     newsletter_subscriber_save_after
-     * @param   type $observer
+     * @param   $observer
      * @return \SevenLike_MailUp_Model_Observer
      */
 	public function inviaUtente($observer)
 	{
-		if (isset($GLOBALS["__sl_mailup_invia_utente"])) {
+        $model = $observer->getEvent()->getDataObject();
+
+        // Ensure that (if called as singleton), this will only get called once per customer
+        if (isset($this->_afterSaveCalled[$model->getEmail()])) {
             return $this;
         }
-		$GLOBALS["__sl_mailup_invia_utente"] = true;
-		
-		$model = $observer->getEvent()->getDataObject();
+        $this->_afterSaveCalled[$model->getEmail()] = true;
+
         if(Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) {
             Mage::log($model->getData());
         }
-		$status = Mage::getModel('newsletter/subscriber')->loadByEmail($model->getEmail())->getStatus();
+        $subscriber = Mage::getModel('newsletter/subscriber')->loadByEmail($model->getEmail());
+		$status = $subscriber->getStatus();
 		
 		$module = Mage::app()->getRequest()->getModuleName();
 		$controller = Mage::app()->getRequest()->getControllerName();
@@ -194,7 +244,8 @@ class SevenLike_MailUp_Model_Observer
 				}
 			}
 			if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) Mage::log("STATO ISCRIZIONE: $status");
-			if ($status == 1) {
+			if ($status == Mage_Newsletter_Model_Subscriber::STATUS_SUBSCRIBED ||
+                $status == Mage_Newsletter_Model_Subscriber::STATUS_UNCONFIRMED) {
 				$ws  = "http://{$console}/frontend/Xmlsubscribe.aspx";
 			} else {
 				$ws  = "http://{$console}/frontend/Xmlunsubscribe.aspx";

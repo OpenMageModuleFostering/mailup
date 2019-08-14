@@ -75,6 +75,11 @@ class SevenLike_MailUp_Model_Lists
                 if($xmlString) {
                     $xmlString = html_entity_decode($xmlString);
                     $startLists = strpos($xmlString, '<Lists>');
+                    if ($startLists === false) {
+                        if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log', $storeId))
+                            Mage::log('MailUpWsImport failed even though login succeeded');
+                        return $selectLists;
+                    }
                     $endPos = strpos($xmlString, '</Lists>');
                     $endLists = $endPos + strlen('</Lists>') - $startLists;
                     $xmlLists = substr($xmlString, $startLists, $endLists);
@@ -96,7 +101,7 @@ class SevenLike_MailUp_Model_Lists
                     }
                 }
             } else {
-                if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log', $storeId)) Mage::log('LoginFromId failed', 0);
+                if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log', $storeId)) Mage::log('LoginFromId failed');
                 $selectLists[0] = array('value' => 0, 'label'=>$GLOBALS["__sl_mailup_login_error"]);
             }
         }
@@ -128,50 +133,80 @@ class SevenLike_MailUp_Model_Lists
     
     /**
      * Get an array of all lists, and their groups!
-     * 
+     *
+     * @param string $storeId
      * @return  array
      */
     public function getDataArray($storeId) 
     {
         $selectLists = array();
 
-        if( ! isset($this->_cache[$storeId])) {
-            if($this->_config()->getUrlConsole($storeId) && $this->_config()->getUsername($storeId)
-                && $this->_config()->getPassword($storeId)) {
-                $wsSend = new MailUpWsSend($storeId);
-                $accessKey = $wsSend->loginFromId();
-                if($accessKey !== false) {
-                    require_once dirname(__FILE__) . "/MailUpWsImport.php";
-                    $wsImport = new MailUpWsImport($storeId);
-                    $xmlString = $wsImport->GetNlList();
-                    if($xmlString) {
-                        $xmlString = html_entity_decode($xmlString);
-                        $startLists = strpos($xmlString, '<Lists>');
-                        $endPos = strpos($xmlString, '</Lists>');
-                        $endLists = $endPos + strlen('</Lists>') - $startLists;
-                        $xmlLists = substr($xmlString, $startLists, $endLists);
-                        $xmlLists = str_replace("&", "&amp;", $xmlLists);
-                        $xml = simplexml_load_string($xmlLists);
-                        foreach ($xml->List as $list) {
-                            $groups = array();
-                            foreach ($list->Groups->Group as $tmp) {
-                                $groups[(string)$tmp["idGroup"]] = (string)$tmp["groupName"];
-                            }
-                            $selectLists[(string)$list['idList']] = array(
-                                'idList'    => (string)$list['idList'], 
-                                'listName'  => (string)$list['listName'], 
-                                'listGUID'  =>(string)$list['listGUID'], 
-                                "groups"    => $groups
-                            );
-                        }
-                   }
-                }
-            }
-            
-            $this->_cache[$storeId] = $selectLists;
+        // If cache is set, use that
+        if (isset($this->_cache[$storeId])) {
+            return $this->_cache[$storeId];
         }
-        
-        return $this->_cache[$storeId];
+
+        // If login details not set, return empty list
+        if (!$this->_config()->getUrlConsole($storeId) ||
+                !$this->_config()->getUsername($storeId) ||
+                !$this->_config()->getPassword($storeId)) {
+            if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log', $storeId))
+                Mage::log('Login details not complete - cannot retrieve lists');
+            return $selectLists;
+        }
+
+        // Attempt login (return empty if fails)
+        $wsSend = new MailUpWsSend($storeId);
+        $accessKey = $wsSend->loginFromId();
+        if ($accessKey === false) {
+            if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log', $storeId))
+                Mage::log('Login failed - cannot retrieve lists');
+            return $selectLists;
+        }
+
+        // Attempt to make call to get lists from API
+        require_once dirname(__FILE__) . "/MailUpWsImport.php";
+        $wsImport = new MailUpWsImport($storeId);
+        $xmlString = $wsImport->GetNlList();
+        if (!$xmlString) {
+            if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log', $storeId))
+                Mage::log('MailUpWsImport got empty response when fetching lists even though login succeeded');
+            return $selectLists;
+        }
+
+        // Try to decode response. If <Lists> is not in selection, then return
+        $xmlString = html_entity_decode($xmlString);
+        $startLists = strpos($xmlString, '<Lists>');
+        // On XML error, $startLists will fail
+        if ($startLists === false) {
+            if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log', $storeId))
+                Mage::log('MailUpWsImport got error response when fetching lists');
+            return $selectLists;
+        }
+
+        // Extract lists and their groups from <List> section of response
+        $endPos = strpos($xmlString, '</Lists>');
+        $endLists = $endPos + strlen('</Lists>') - $startLists;
+        $xmlLists = substr($xmlString, $startLists, $endLists);
+        $xmlLists = str_replace("&", "&amp;", $xmlLists);
+        $xml = simplexml_load_string($xmlLists);
+        foreach ($xml->List as $list) {
+            $groups = array();
+            foreach ($list->Groups->Group as $tmp) {
+                $groups[(string)$tmp["idGroup"]] = (string)$tmp["groupName"];
+            }
+            $selectLists[(string)$list['idList']] = array(
+                'idList' => (string)$list['idList'],
+                'listName' => (string)$list['listName'],
+                'listGUID' => (string)$list['listGUID'],
+                "groups" => $groups
+            );
+        }
+
+        // Cache results as this is a success
+        $this->_cache[$storeId] = $selectLists;
+
+        return $selectLists;
     }
     
     /**

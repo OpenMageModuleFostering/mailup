@@ -90,6 +90,9 @@ $xml = simplexml_load_string($xmlLists);
             <?php $listGUID = (string) $list['listGUID'] ?>
         <?php endif ?>
 	<?php endforeach ?>
+    <?php if (!isset($idList)): ?>
+    <h4><?php echo $this->__('There is no list selected in MailUp config. Please select one.')?></h4>
+    <?php else: ?>
     <form id="edit_form" name="edit_form" method="post" action="<?php echo $this->getUrl('*/*/post')?>">
         <input name="form_key" type="hidden" value="<?php echo Mage::getSingleton('core/session')->getFormKey() ?>" />
         <input type="hidden" name="store_id" value="<?php echo $this->getRequest()->getParam('store_id'); ?>" />
@@ -187,6 +190,7 @@ $xml = simplexml_load_string($xmlLists);
         </table>
         </fieldset>
     </form>
+    <?php endif; ?>
 
 </div>
 <script type="text/javascript">

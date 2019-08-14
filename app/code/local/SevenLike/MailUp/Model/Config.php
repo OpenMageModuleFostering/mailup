@@ -18,8 +18,10 @@ class SevenLike_MailUp_Model_Config
     const XML_WEBHOOK_KEY           = 'mailup_newsletter/mailup/webhook_crypt_key';
     const XML_DISABLE_NOTIFICATION  = 'mailup_newsletter/mailup/disablenewslettersuccesses';
     const XML_TEST_MODE_ENABLE      = 'mailup_newsletter/mailup/enable_testmode';
+    const XML_ORDER_STATUSES        = 'mailup_newsletter/mailup/qualifying_order_statuses';
     
     const XML_MAPPING_SECTION       = 'mailup_newsletter/mailup_mapping';
+    const XML_CUSTOM_MAPPING_SECTION = 'mailup_newsletter/mailup_mapping_custom';
 
     /**
      * Is test mode enabled
@@ -57,6 +59,35 @@ class SevenLike_MailUp_Model_Config
         }
         
         Mage::log($message, null, 'mailup.log');
+    }
+
+    /**
+     * Get qualifying order statuses for inclusion in order totals
+     *
+     * @param  int
+     * @return array Array of statuses
+     */
+    public function getQualifyingOrderStatuses($storeId = NULL)
+    {
+        // Get from config storage
+        $statusesStr = Mage::getStoreConfig(self::XML_ORDER_STATUSES, $storeId);
+
+        if ($statusesStr === null || $statusesStr === '') {
+            return array();
+        }
+
+        // Split up comma separated values
+        return explode(',', $statusesStr);
+    }
+
+    /**
+     * Get default qualifying order stated for inclusion in order totals
+     *
+     * @return array
+     */
+    public function getDefaultQualifyingStates()
+    {
+        return array('complete', 'closed', 'processing');
     }
     
     /**
@@ -210,14 +241,22 @@ class SevenLike_MailUp_Model_Config
     
     /**
      * Get Field Mapping
-     * 
-     * @todo    Fix to use the config for mappings, per store..
+     *
      * @param   int
      * @return  array
      */
 	public function getFieldsMapping($storeId = NULL) 
     {
-        return Mage::getStoreConfig(self::XML_MAPPING_SECTION, $storeId);
+        // Get standard mappings
+        $mappingMain = Mage::getStoreConfig(self::XML_MAPPING_SECTION, $storeId);
+        // Get mappings for custom customer attributes
+        $mappingCustom = Mage::getStoreConfig(self::XML_CUSTOM_MAPPING_SECTION, $storeId);
+
+        if ($mappingCustom === null) {
+            $mappingCustom = array();
+        }
+
+        return array_merge($mappingMain, $mappingCustom);
         
         /*$return = array();
         

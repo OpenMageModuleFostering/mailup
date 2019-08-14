@@ -116,8 +116,8 @@ class MailUpWsSend
         $fields = null;
 
         try {
-            $result = get_object_vars($this->soapClient->GetFields(array('accessKey' => $accessKey)));
-            $xml = simplexml_load_string($result['GetFieldsResult']);
+            $result = get_object_vars($this->soapClient->GetFields_st(array('accessKey' => $accessKey)));
+            $xml = simplexml_load_string($result['GetFields_stResult']);
 
             if ($xml->Error) {
                 throw new Exception($xml->Error);
@@ -143,12 +143,14 @@ class MailUpWsSend
 
         if ($xmlSimpleElement->Fields && sizeof($xmlSimpleElement->Fields->Field) > 0) {
 			$fields = array();
-            if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log', $this->storeId)) Mage::log('Fields returned, overwriting default configuration', 0);
+            if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log', $this->storeId))
+                Mage::log('Fields returned, overwriting default configuration', Zend_Log::INFO);
             foreach ($xmlSimpleElement->Fields->Field as $fieldSimpleElement) {
                 $fields[(string)$fieldSimpleElement['Name']] = (string)$fieldSimpleElement['Id'];
             }
         }
-        if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log', $this->storeId)) Mage::log($fields);
+        if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log', $this->storeId))
+            Mage::log($fields);
         return $fields;
     }
 

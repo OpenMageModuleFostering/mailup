@@ -527,7 +527,6 @@ class MailUpWsImport
                 //->getSelect()->query()
             ;
             /**
-             * @todo    review if this is correct behaviour.
              * If StoreID = 0 we will not bother to filter...
              */
             if(isset($storeId) && ! empty($storeId)) {
@@ -559,8 +558,8 @@ class MailUpWsImport
                 $customersFiltered = self::intersectByEntityId($tempSubscribed, $customersFiltered);
 			}
 			/**
-             * FILTRO 1 ACQUISTATO: in base al fatto se ha effettuato o meno acquisti: 
-             * 0 = tutti, 1 = chi ha acquistato, 2 = chi non ha mai acquistato
+             * FILTER 1 PURCHASED: Depending on whether or not customer has made ​​purchases
+             *   0 = all, 1 = those who purchased, 2 = someone who has never purchased
              */
 			$count = 0;
 			$result = array();
@@ -570,9 +569,12 @@ class MailUpWsImport
 			if ($request->getRequest()->getParam('mailupCustomers') > 0) {
 				foreach ($customersFiltered as $customer) {
 					$result[] = $customer;
-					//filtro gli ordini in base al customer id
-					$orders = Mage::getModel('sales/order')->getCollection()->addAttributeToFilter('customer_id', $result[$count]['entity_id']);
-					//aggiungo il cliente ad un determinato array in base a se ha ordinato o meno
+					// Filter orders based on customer id
+                    $orders = Mage::getResourceModel('sales/order_collection')
+                        ->addAttributeToFilter('customer_id', $result[$count]['entity_id']);
+                    Mage::helper('mailup/order')->addStatusFilterToOrders($orders);
+
+					// Add customer to either purchased or non-purchased array based on whether any orders
 					if ($orders->getData()) {
 						$tempPurchased[] = $result[$count];
 					} 
@@ -592,7 +594,7 @@ class MailUpWsImport
 				}
 			}
 			/**
-             * FILTRO 2 PRODOTTO ACQUISTATO: in base al fatto se ha acquistato un determinato prodotto
+             * FILTER 1 BY PRODUCT: Based on whether customer purchased a specific product
              */
 			$count = 0;
 			$result = array();
@@ -602,21 +604,16 @@ class MailUpWsImport
 				foreach ($customersFiltered as $customer) {
 					$result[] = $customer;
 
-					//filtro gli ordini in base al customer id
-					$orders = Mage::getModel('sales/order')
-                        ->getCollection()
-                        ->addAttributeToFilter('customer_id', $result[$count]['entity_id'])
-                    ;
-					$purchasedProduct = 0;
+					// Filter orders based on customer id
+                    $orders = Mage::getResourceModel('sales/order_collection')
+                        ->addAttributeToFilter('customer_id', $result[$count]['entity_id']);
+                    Mage::helper('mailup/order')->addStatusFilterToOrders($orders);
 
+					$purchasedProduct = 0;
 					$mailupProductId = Mage::getModel('catalog/product')
-                        ->getIdBySku($request->getRequest()->getParam('mailupProductSku'))
-                    ;
+                        ->getIdBySku($request->getRequest()->getParam('mailupProductSku'));
 
 					foreach ($orders->getData() as $order) {
-                        if(isset($order["status"]) && ! in_array($order["status"], array("closed", "complete", "processing"))) {
-                            continue;
-                        }
 						$orderIncrementId = $order['increment_id'];
 
 						//carico i dati di ogni ordine
@@ -646,7 +643,7 @@ class MailUpWsImport
 				$customersFiltered = self::intersectByEntityId($tempProduct, $customersFiltered);
 			}
 			/**
-             * FILTER BOUGHT IN CATEGORY 3: Depending on whether bought at least one product in a given category
+             * FILTER 3 BY CATEGORY: Depending on whether bought at least one product in a given category
              */
 			$count = 0;
 			$result = array();
@@ -654,18 +651,16 @@ class MailUpWsImport
 			if ($request->getRequest()->getParam('mailupCategoryId') > 0) {
 				foreach ($customersFiltered as $customer) {
 					$result[] = $customer;
-					//filtro gli ordini in base al customer id
-					$orders = Mage::getModel('sales/order')
-                        ->getCollection()
-                        ->addAttributeToFilter('customer_id', $result[$count]['entity_id'])
-                    ;
+					// Filter orders based on customer id
+                    $orders = Mage::getResourceModel('sales/order_collection')
+                        ->addAttributeToFilter('customer_id', $result[$count]['entity_id']);
+                    Mage::helper('mailup/order')->addStatusFilterToOrders($orders);
+
 					foreach ($orders->getData() as $order) {
-                        if(isset($order["status"]) && ! in_array($order["status"], array("closed", "complete", "processing"))) {
-                            continue;
-                        }
+
 						$orderIncrementId = $order['increment_id'];
 
-						//carico i dati di ogni ordine
+						// Load data for each order (very slow)
 						$orderData = Mage::getModel('sales/order')->loadByIncrementID($orderIncrementId);
 						$items = $orderData->getAllItems();
                         /**
@@ -673,9 +668,9 @@ class MailUpWsImport
                          */
                         $searchCategories = Mage::helper('mailup')->getSubCategories($request->getRequest()->getParam('mailupCategoryId'));
 						foreach ($items as $product) {
-                            $_prod = Mage::getModel('catalog/product')->load($product->getProductId()); // ned to load full product for cats.
+                            $_prod = Mage::getModel('catalog/product')->load($product->getProductId()); // need to load full product for cats.
                             $productCategories = Mage::getResourceSingleton('catalog/product')->getCategoryIds($_prod);
-                            $matchingCategories = self::intersectByEntityId($productCategories, $searchCategories);
+                            $matchingCategories = array_intersect($productCategories, $searchCategories);
                             if(is_array($matchingCategories) && ! empty($matchingCategories)) {
                                 $tempCategory[] = $result[$count];
 								break 2;
@@ -687,9 +682,9 @@ class MailUpWsImport
 				}
 				$customersFiltered = self::intersectByEntityId($tempCategory, $customersFiltered);
 			}
-            
+
 			/**
-             * FILTRO 4 GRUPPO DI CLIENTI
+             * FILTER 4 CUSTOMER GROUP
              */
 			$count = 0;
 			$result = array();
@@ -1151,13 +1146,13 @@ class MailUpWsImport
     {
         $tempIds = array();
         foreach ($array1 as $entity1) {
-            $tempIds[$entity1['entity_id']] = true;
+            if (isset($entity1['entity_id']))
+                $tempIds[$entity1['entity_id']] = true;
         }
         $tempArray = array();
         foreach ($array2 as $entity2) {
-            if (isset($tempIds[$entity2['entity_id']])) {
+            if (isset($entity2['entity_id']) && isset($tempIds[$entity2['entity_id']]))
                 $tempArray[] = $entity2;
-            }
         }
 
         return $tempArray;

@@ -2,7 +2,7 @@
 <config>
     <modules>
         <SevenLike_MailUp>
-            <version>2.4.1</version>
+            <version>2.6</version>
         </SevenLike_MailUp>
     </modules>
 <!-- frontend -->
@@ -96,6 +96,15 @@
         </resources>
 <!-- events -->
 		<events>
+            <newsletter_subscriber_save_before>
+                <observers>
+                    <mailup_observer>
+                        <type>singleton</type>
+                        <class>SevenLike_MailUp_Model_Observer</class>
+                        <method>beforeSave</method>
+                    </mailup_observer>
+                </observers>
+            </newsletter_subscriber_save_before>
 			<newsletter_subscriber_save_after>
 				<observers>
 					<mailupinviautente_observer>
@@ -181,7 +190,38 @@
                 <disablenewslettersuccesses>1</disablenewslettersuccesses>
                 <require_subscription_confirmation>1</require_subscription_confirmation>
                 <enable_testmode>0</enable_testmode>
+                <mailup_cron_frequency>0</mailup_cron_frequency>
+                <mailup_cron_offset>0</mailup_cron_offset>
             </mailup>
+            <mailup_mapping>
+                <!-- Default mapping from Magento fields (or this extensions mapper) to MailUp fields -->
+                <Name>1</Name>
+                <Last>2</Last>
+                <Email>111</Email>
+                <Company>3</Company>
+                <Address>9</Address>
+                <City>4</City>
+                <ZIP>6</ZIP>
+                <Province>5</Province>
+                <Region>8</Region>
+                <LatestAbandonedCartTotal>21</LatestAbandonedCartTotal>
+                <LatestAbandonedCartDate>20</LatestAbandonedCartDate>
+                <LatestShippedOrderDate>18</LatestShippedOrderDate>
+                <LatestShippedOrderID>19</LatestShippedOrderID>
+                <AllOrderedProductIDs>26</AllOrderedProductIDs>
+                <LatestOrderCategoryIDs>17</LatestOrderCategoryIDs>
+                <TotalOrderedLast30d>25</TotalOrderedLast30d>
+                <TotalOrderedLast12m>24</TotalOrderedLast12m>
+                <TotalOrdered>23</TotalOrdered>
+                <LatestAbandonedCartID>22</LatestAbandonedCartID>
+                <Gender>10</Gender>
+                <CustomerID>12</CustomerID>
+                <Phone>11</Phone>
+                <LatestOrderAmount>15</LatestOrderAmount>
+                <LatestOrderDate>14</LatestOrderDate>
+                <LatestOrderID>13</LatestOrderID>
+                <LatestOrderProductIDs>16</LatestOrderProductIDs>
+            </mailup_mapping>
         </mailup_newsletter>
     </default>
 <!-- adminhtml -->

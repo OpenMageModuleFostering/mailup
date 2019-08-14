@@ -9,6 +9,31 @@ class SevenLike_MailUp_Model_Adminhtml_System_Source_Cron_Frequency
 	const DAILY = 4;
 
     /**
+     * Get the frequency in hours given a frequency index such as
+     * SevenLike_MailUp_Model_Adminhtml_System_Source_Cron_Frequency::EVERY_2_HOURS
+     *
+     * @param int $frequencyIndex
+     * @return null|int
+     */
+    public static function getPeriod($frequencyIndex)
+    {
+        static $periodMapping = array(
+            self::HOURLY => 1,
+            self::EVERY_2_HOURS => 2,
+            self::EVERY_6_HOURS => 6,
+            self::EVERY_12_HOURS => 12,
+            self::DAILY => 24
+        );
+
+        // If no valid entry, return null
+        if (!isset($periodMapping[$frequencyIndex])) {
+            return null;
+        }
+
+        return $periodMapping[$frequencyIndex];
+    }
+
+    /**
      * Fetch options array
      *
      * @return array
