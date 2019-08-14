@@ -22,6 +22,21 @@ class MailUpWsImport
     const ERROR_CHECKING_PROCESS_STATUS = -603;
     const ERROR_STARTING_PROCESS_JOB = -604;
     
+    const STARTIMPORTPROCESSES_SUCCESS = 0;
+    
+    /*protected $_messages = array(
+        'ERROR_UNRECOGNISED' => -400,
+        'ERROR_XML_EMPTY' => 401,
+        'ERROR_XML_TO_CSV_FAILED' => -402,
+        'ERROR_NEW_IMPORT_PROCESS_FAILED' => -403,
+        'ERROR_CONFIRMATION_EMAIL' => -410,
+        'ERROR_LISTID_LISTGUID_MISMATCH' => -450,
+        'ERROR_UNRECOGNISED_600' => -600,
+        'ERROR_IMPORT_PROCESS_RUNNING_FOR_DIFF_LIST' => -602,
+        'ERROR_CHECKING_PROCESS_STATUS' => -603,
+        'ERROR_STARTING_PROCESS_JOB' => -604
+    );*/
+    
     /**
      * @var string
      */
@@ -65,10 +80,12 @@ class MailUpWsImport
 		$WSDLUrl = 'http://'. $urlConsole .'/services/WSMailUpImport.asmx?WSDL';
 		$user = Mage::getStoreConfig('mailup_newsletter/mailup/username_ws', $this->storeId);
 		$password = Mage::getStoreConfig('mailup_newsletter/mailup/password_ws', $this->storeId);
-		$headers = array('User' => $user, 'Password' => $password);
+		$headers = array(
+            'User'      => $user, 
+            'Password'  => $password
+        );
 		$this->header = new SOAPHeader($this->ns, 'Authentication', $headers);
 
-        
         if ($this->_config()->isLogEnabled($this->storeId)) {
             Mage::log("Connecting to {$urlConsole} as {$user}");
         }
@@ -93,22 +110,15 @@ class MailUpWsImport
         
         return $this;
     }
-
-	function __destruct() 
-    {
-		unset($this->soapClient);
-	}
-
-    /**
-     * Get a list of functions from the web service.
-     */
-	public function getFunctions() 
-    {
-		print_r($this->soapClient->__getFunctions());
-	}
     
     /**
      * Create a New Group
+     * 
+     * @todo    CHECK THE API - might have been updated??
+     * The API states the signature of this method is:
+     * 
+     *      CreateGroup(int idList, int listGUID, string newGroupName)
+     * 
      * 
      * @param type $newGroup
      * @return boolean
@@ -119,15 +129,19 @@ class MailUpWsImport
             return false;
         }
 		try {
-			if ($this->_config()->isLogEnabled($this->storeId)) { 
-                Mage::log("Mailup: creazione nuovo gruppo");
-                Mage::log($newGroup);
-            }
 			$this->soapClient->CreateGroup($newGroup);
 			$this->printLastRequest();
 			$this->printLastResponse();
-            
-			return $this->readReturnCode('CreateGroup', 'ReturnCode');
+			$returnCode = $this->readReturnCode('CreateGroup', 'ReturnCode');
+            if ($this->_config()->isLogEnabled($this->storeId)) { 
+                $this->_config()->dbLog(sprintf(
+                    "Mailup: Create a new Group [%s] [List:%s] [%s]",
+                    $newGroup['newGroupName'],
+                    $newGroup['listGUID'],
+                    $returnCode
+                ));
+            }
+            return $returnCode;
 		} 
         catch (SoapFault $soapFault) {
 			Mage::log('SOAP error', 0);
@@ -138,7 +152,12 @@ class MailUpWsImport
     /**
      * GetNlList
      * 
-     * @return boolean
+     * KNOWN RESTRICTION
+     * Characters & and " are not escaped in returned response, so please avoid these 
+     * characters in names of lists and groups otherwise you will experience some problems due to an invalid returned XML
+     * 
+     * @todo    parse the XML response correctly and return something nice.
+     * @return  string
      */
 	public function GetNlList() 
     {
@@ -151,7 +170,7 @@ class MailUpWsImport
 			$this->printLastResponse();
 			$result = $this->soapClient->__getLastResponse();
 			if ($this->_config()->isLogEnabled($this->storeId)) { 
-                Mage::log($result, 0);
+               $this->_config()->log($result, 0);
             }
 			return $result;
 		} 
@@ -166,7 +185,7 @@ class MailUpWsImport
      * 
      * @see     http://help.mailup.com/display/mailupapi/WSMailUpImport.NewImportProcess
      * @param   type $importProcessData
-     * @return  boolean
+     * @return  int
      */
 	public function newImportProcess($importProcessData) 
     {
@@ -185,7 +204,7 @@ class MailUpWsImport
              */
 			$returncode = $this->readReturnCode('NewImportProcess', 'ReturnCode');
 			if ($this->_config()->isLogEnabled($this->storeId)) {
-                Mage::log("mailup: newImportProcess result: $returncode", 0);
+                $this->_config()->dbLog("newImportProcess [ReturnCode] [{$returncode}]", 0);
             }
 			return $returncode;
 		} 
@@ -199,6 +218,8 @@ class MailUpWsImport
     /**
      * Start Process
      * 
+     * StartProcess(int idList, int listGUID, int idProcess)
+     * 
      * @see     http://help.mailup.com/display/mailupapi/WSMailUpImport.StartProcess
      * @param   type $processData
      * @return  boolean
@@ -211,23 +232,27 @@ class MailUpWsImport
 		try {
 			$this->soapClient->StartProcess($processData);
 			$this->printLastResponse();
-			if ($this->_config()->isLogEnabled($this->storeId)) { 
-                Mage::log("mailup: ws: startProcess", 0);
+            $returncode = $this->readReturnCode('mailupMessage', 'ReturnCode');
+			if ($this->_config()->isLogEnabled($this->storeId)) {
+                $this->_config()->log("mailup: startProcess");
             }
-			return true;
+            
+			return $returncode;
 		} 
         catch (SoapFault $soapFault) {
 			Mage::log('SOAP error', 0);
 			Mage::log($soapFault, 0);
-			return false;
+			return FALSE;
 		}
 	}
 
     /**
      * Process Detail
      * 
-     * @param type $processData
-     * @return boolean
+     * GetProcessDetails(int idList, int listGUID, int idProcess)
+     * 
+     * @param   array $processData
+     * @return  boolean
      */
 	public function getProcessDetail($processData) 
     {
@@ -236,13 +261,16 @@ class MailUpWsImport
         }
 		try {
 			if ($this->_config()->isLogEnabled($this->storeId)) {
-                Mage::log($this->soapClient->GetProcessDetails($processData), 0);
+                //GetProcessDetails(int idList, int listGUID, int idProcess)
+                $res = $this->soapClient->GetProcessDetails($processData);
+                $this->_config()->log($res, 0);
+                return $res;
             }
 		} 
         catch (SoapFault $soapFault) {
 			Mage::log('SOAP error', 0);
 			Mage::log($soapFault, 0);
-		}
+		}        
 	}
 
     /**
@@ -250,7 +278,7 @@ class MailUpWsImport
      * 
      * @see     http://help.mailup.com/display/mailupapi/WSMailUpImport.StartImportProcesses
      * @param   type $processData
-     * @return  boolean
+     * @return  int|bool
      */
 	public function startImportProcesses($processData) 
     {
@@ -260,16 +288,21 @@ class MailUpWsImport
 		try {
 			$this->soapClient->StartImportProcesses($processData);
             $returnCode = $this->_getStartImportProcessResult();
-            Mage::log('_getStartImportProcessResult');
-            Mage::log($returnCode);
-            //$returncode = $this->readReturnCode('StartImportProcesses', 'ReturnCode');
-            
+            /**
+             * @todo    handle response better
+             * 
+             * We need to check this to see if we really are done, or the process is in a queue
+             * or already running etc!
+             */
             if ($this->_config()->isLogEnabled($this->storeId)) { 
-                Mage::log("mailup: ws: startImportProcesses", 0);
+                $this->_config()->dbLog("startImportProcesses [triggered]");
+                $this->_config()->dbLog(sprintf("startImportProcesses [ReturnCode] [%d]", $returnCode));
+                //$this->_config()->log($returnCode);
             }
 			$this->printLastRequest();
 			$this->printLastResponse();
-			return TRUE;
+            
+			return $returnCode;
 		} 
         catch (SoapFault $soapFault) {
 			Mage::log('SOAP error', 0);
@@ -317,10 +350,11 @@ class MailUpWsImport
          */
         if(isset($this->domResult) && is_object($this->domResult)) {
             $rCode = $this->domResult->getElementsByTagName($param);
-            return $rCode->item(0)->nodeValue;
+            return (int) $rCode->item(0)->nodeValue;
         }
         else {
-            Mage::log('NO RESULT');
+            $this->_config()->dbLog('readReturnCode [No Return Code]');
+            //$this->_config()->log('readReturnCode [No Return Code]');
             return 9999;
         }
         
@@ -330,11 +364,27 @@ class MailUpWsImport
     /**
      * Get the result form the Import Process
      * 
-     * An array of status code,s the first one is the overall return code, 
+     * An array of status code's the first one is the overall return code, 
      * but may be followed by return codes for each process started.
      * 
+     * <mailupMessage>
+        <mailupBody>
+            <ReturnCode>0</ReturnCode>
+            <processes>
+                <process>
+                    <processID>696</processID>
+                    <listID>4</listID>
+                    <ReturnCode>0</ReturnCode><!-- 0 = success -->
+                    <processID>697</processID>
+                    <listID>4</listID>
+                    <ReturnCode>0</ReturnCode>
+                </process>
+            </processes>
+        </mailupBody>
+    </mailupMessage>
+     * 
      * @param   string
-     * @return  array
+     * @return  int
      */
     protected function _getStartImportProcessResult($param = 'ReturnCode')
     {
@@ -358,10 +408,32 @@ class MailUpWsImport
                 $returnCodes[] = $node->nodeValue;
             }
             
-            return $returnCodes;
+            $processIds = array();
+            $nodes = $this->domResult->getElementsByTagName('processID');
+            foreach($nodes as $node) {
+                $processIds[] = $node->nodeValue;
+            }
+
+            $overallReturnCode = array_shift($returnCodes); // first one is the overall returnCode.
+            /**
+             * Lets get the return codes for each process
+             */
+            if(count($returnCodes) > 0 && count($returnCodes) == count($processIds)) {
+                /**
+                 * @todo Use StartImportProcesses HERE!
+                 * 
+                 * We now have a list of Process IDs which have been added to the queue.
+                 * We can now go through them all and try and start them!
+                 */
+                $returnCodes = array_combine($processIds, $returnCodes);
+                $this->_config()->log('getStartImportProcessResult [Process Return Codes]');
+                $this->_config()->log($returnCodes);
+            }
+            
+            return (int) $overallReturnCode;
         }
         else {
-            Mage::log('NO RESULT _getStartImportProcessResult');
+            $this->_config()->log('getStartImportProcessResult [No ReturnCode]');
             return 9999;
         }
         
@@ -372,9 +444,6 @@ class MailUpWsImport
      * NOT IN USE /////////////////////
      * 
      * Get the result form New Import Process
-     * 
-     * An array of status code,s the first one is the overall return code, 
-     * but may be followed by return codes for each process started.
      * 
      * @param   string
      * @return  array
@@ -399,7 +468,7 @@ class MailUpWsImport
             return $rCode->nodeValue;
         }
         else {
-            Mage::log('NO RESULT');
+            $this->_config()->log('getNewImportProcessResult [No ReturnCode]');
             return 9999;
         }
         
@@ -413,7 +482,8 @@ class MailUpWsImport
      */
 	private function printLastRequest()
 	{
-		return "";
+		return;
+        
 		if ($this->_config()->isLogEnabled($this->storeId)) {
             $this->soapClient->__getLastRequest();
         }
@@ -424,19 +494,19 @@ class MailUpWsImport
      */
 	private function printLastResponse()
 	{
-		//return "";
 		if ($this->_config()->isLogEnabled($this->storeId)) { 
-            Mage::log('Last Response');
+            Mage::log('Mailup: printLastResponse');
             Mage::log($this->soapClient->__getLastResponse());
         }
 	}
 
     /**
-     * Get filtered customers.
+     * Get filtered customers 
      * 
-     * @todo    refactor this it's v poor
+     * @todo    refactor
      * @param
-     * @return int
+     * @param   int
+     * @return  array
      */
 	public function getCustomersFiltered($request, $storeId = NULL)
 	{
@@ -454,14 +524,23 @@ class MailUpWsImport
 				->addAttributeToSelect('group_id')
 				->addAttributeToSelect('created_at')
                 ->addAttributeToSelect('store_id')
-                ->addAttributeToFilter('store_id', array('eq' => $storeId))
-                ->getSelect()->query()
+                //->getSelect()->query()
             ;
-            
-//            if(isset($storeId)) {
-//                $customerCollection->addAttributeToFilter('store_id', array('eq' => $storeId));
-//            }
-//		      $customerCollection->getSelect()->query();
+            /**
+             * @todo    review if this is correct behaviour.
+             * If StoreID = 0 we will not bother to filter...
+             */
+            if(isset($storeId) && ! empty($storeId)) {
+                $customerCollection->addAttributeToFilter('store_id', array(
+                    'eq' => $storeId
+                ));
+            }
+            /*else {
+                $customerCollection->addAttributeToFilter('store_id', array(
+                    'eq' => Mage::app()->getDefaultStoreView()->getStoreId()
+                ));
+            }*/
+		    $customerCollection = $customerCollection->getSelect()->query();
 
 			while ($row = $customerCollection->fetch()) {
 				$customersFiltered[] = $row;
@@ -478,8 +557,10 @@ class MailUpWsImport
 				}
 				$customersFiltered = array_intersect($tempSubscribed, $customersFiltered);
 			}
-
-			//FILTRO 1 ACQUISTATO: in base al fatto se ha effettuato o meno acquisti: 0 = tutti, 1 = chi ha acquistato, 2 = chi non ha mai acquistato
+			/**
+             * FILTRO 1 ACQUISTATO: in base al fatto se ha effettuato o meno acquisti: 
+             * 0 = tutti, 1 = chi ha acquistato, 2 = chi non ha mai acquistato
+             */
 			$count = 0;
 			$result = array();
 			$tempPurchased = array();
@@ -488,32 +569,30 @@ class MailUpWsImport
 			if ($request->getRequest()->getParam('mailupCustomers') > 0) {
 				foreach ($customersFiltered as $customer) {
 					$result[] = $customer;
-
 					//filtro gli ordini in base al customer id
 					$orders = Mage::getModel('sales/order')->getCollection()->addAttributeToFilter('customer_id', $result[$count]['entity_id']);
-
 					//aggiungo il cliente ad un determinato array in base a se ha ordinato o meno
 					if ($orders->getData()) {
 						$tempPurchased[] = $result[$count];
-					} else {
+					} 
+                    else {
 						$tempNoPurchased[] = $result[$count];
 					}
-
 					//unsetto la variabile
 					unset($orders); //->unsetData();
-
 					$count++;
 				}
 
 				if ($request->getRequest()->getParam('mailupCustomers') == 1) {
 					$customersFiltered = array_intersect($tempPurchased, $customersFiltered);
-				} elseif ($request->getRequest()->getParam('mailupCustomers') == 2) {
+				} 
+                elseif ($request->getRequest()->getParam('mailupCustomers') == 2) {
 					$customersFiltered = array_intersect($tempNoPurchased, $customersFiltered);
 				}
 			}
-			//FINE FILTRO 1 ACQUISTATO: testato OK
-
-			//FILTRO 2 PRODOTTO ACQUISTATO: in base al fatto se ha acquistato un determinato prodotto
+			/**
+             * FILTRO 2 PRODOTTO ACQUISTATO: in base al fatto se ha acquistato un determinato prodotto
+             */
 			$count = 0;
 			$result = array();
 			$tempProduct = array();
@@ -534,7 +613,9 @@ class MailUpWsImport
                     ;
 
 					foreach ($orders->getData() as $order) {
-						if (!in_array($order["status"], array("closed", "complete", "processing"))) continue;
+                        if(isset($order["status"]) && ! in_array($order["status"], array("closed", "complete", "processing"))) {
+                            continue;
+                        }
 						$orderIncrementId = $order['increment_id'];
 
 						//carico i dati di ogni ordine
@@ -563,51 +644,52 @@ class MailUpWsImport
 
 				$customersFiltered = array_intersect($tempProduct, $customersFiltered);
 			}
-			//FINE FILTRO 2 PRODOTTO ACQUISTATO: testato OK
-
-
-			//FILTRO 3 ACQUISTATO IN CATEGORIA: in base al fatto se ha acquistato almeno un prodotto in una determinata categoria
+			/**
+             * FILTER BOUGHT IN CATEGORY 3: Depending on whether bought at least one product in a given category
+             */
 			$count = 0;
 			$result = array();
 			$tempCategory = array();
-
 			if ($request->getRequest()->getParam('mailupCategoryId') > 0) {
 				foreach ($customersFiltered as $customer) {
 					$result[] = $customer;
-
 					//filtro gli ordini in base al customer id
 					$orders = Mage::getModel('sales/order')
                         ->getCollection()
                         ->addAttributeToFilter('customer_id', $result[$count]['entity_id'])
                     ;
-					$purchasedCategory = 0;
-
 					foreach ($orders->getData() as $order) {
-						if (!in_array($order["status"], array("closed", "complete", "processing"))) continue;
+                        if(isset($order["status"]) && ! in_array($order["status"], array("closed", "complete", "processing"))) {
+                            continue;
+                        }
 						$orderIncrementId = $order['increment_id'];
 
 						//carico i dati di ogni ordine
 						$orderData = Mage::getModel('sales/order')->loadByIncrementID($orderIncrementId);
 						$items = $orderData->getAllItems();
-						$cat_ids = array();
+                        /**
+                         * Category ID, and it's descendants
+                         */
+                        $searchCategories = Mage::helper('mailup')->getSubCategories($request->getRequest()->getParam('mailupCategoryId'));
 						foreach ($items as $product) {
-							if (in_array($request->getRequest()->getParam('mailupCategoryId'), Mage::getResourceSingleton('catalog/product')->getCategoryIds($product))) {
-								$tempCategory[] = $result[$count];
+                            $_prod = Mage::getModel('catalog/product')->load($product->getProductId()); // ned to load full product for cats.
+                            $productCategories = Mage::getResourceSingleton('catalog/product')->getCategoryIds($_prod);
+                            $matchingCategories = array_intersect($productCategories, $searchCategories);
+                            if(is_array($matchingCategories) && ! empty($matchingCategories)) {
+                                $tempCategory[] = $result[$count];
 								break 2;
-							}
+                            }
 						}
 					}
-
 					unset($orders);
 					$count++;
 				}
-
 				$customersFiltered = array_intersect($tempCategory, $customersFiltered);
 			}
-			//FINE FILTRO 3 ACQUISTATO IN CATEGORIA: testato ok
-
-
-			//FILTRO 4 GRUPPO DI CLIENTI
+            
+			/**
+             * FILTRO 4 GRUPPO DI CLIENTI
+             */
 			$count = 0;
 			$result = array();
 			$tempGroup = array();
@@ -689,13 +771,27 @@ class MailUpWsImport
 					$filterEnd = '';
 
 					if ($request->getRequest()->getParam('mailupCustomerStartDate')) {
-						$date =  Zend_Locale_Format::getDate($request->getRequest()->getParam('mailupCustomerStartDate'), array('locale'=>Mage::app()->getLocale()->getLocale(), 'date_format'=>Mage::app()->getLocale()->getDateFormat(Mage_Core_Model_Locale::FORMAT_TYPE_SHORT), 'fix_date'=>true));
+						$date =  Zend_Locale_Format::getDate(
+                            $request->getRequest()->getParam('mailupCustomerStartDate'), 
+                            array(
+                                'locale'=>Mage::app()->getLocale()->getLocale(), 
+                                'date_format'=>Mage::app()->getLocale()->getDateFormat(Mage_Core_Model_Locale::FORMAT_TYPE_SHORT), 
+                                'fix_date'=>true
+                            )
+                        );
 						$date['month'] = str_pad($date['month'], 2, 0, STR_PAD_LEFT);
 						$date['day'] = str_pad($date['day'], 2, 0, STR_PAD_LEFT);
 						$filterStart = "{$date['year']}-{$date['month']}-{$date['day']} 00:00:00";
 					}
 					if ($request->getRequest()->getParam('mailupCustomerEndDate')) {
-						$date =  Zend_Locale_Format::getDate($request->getRequest()->getParam('mailupCustomerEndDate'), array('locale'=>Mage::app()->getLocale()->getLocale(), 'date_format'=>Mage::app()->getLocale()->getDateFormat(Mage_Core_Model_Locale::FORMAT_TYPE_SHORT), 'fix_date'=>true));
+						$date =  Zend_Locale_Format::getDate(
+                            $request->getRequest()->getParam('mailupCustomerEndDate'), 
+                            array(
+                                'locale'=>Mage::app()->getLocale()->getLocale(), 
+                                'date_format'=>Mage::app()->getLocale()->getDateFormat(Mage_Core_Model_Locale::FORMAT_TYPE_SHORT), 
+                                'fix_date'=>true
+                            )
+                        );
 						$date['month'] = str_pad($date['month'], 2, 0, STR_PAD_LEFT);
 						$date['day'] = str_pad($date['day'], 2, 0, STR_PAD_LEFT);
 						$filterEnd = "{$date['year']}-{$date['month']}-{$date['day']} 23:59:59";
@@ -705,12 +801,14 @@ class MailUpWsImport
 						if ($createdAt >= $filterStart and $createdAt <= $filterEnd) {
 							$tempDate[] = $customer;
 						}
-					} elseif ($filterStart) {
+					} 
+                    elseif ($filterStart) {
 						// >= di start date
 						if ($createdAt >= $filterStart) {
 							$tempDate[] = $customer;
 						}
-					} else {
+					} 
+                    else {
 						// <= di end date
 						if ($createdAt <= $filterEnd) {
 							$tempDate[] = $customer;
@@ -741,7 +839,9 @@ class MailUpWsImport
 					$totalOrdered = 0;
 
 					foreach ($orders->getData() as $order) {
-						if (!in_array($order["status"], array("closed", "complete", "processing"))) continue;
+						if(isset($order["status"]) && ! in_array($order["status"], array("closed", "complete", "processing"))) {
+                            continue;
+                        }
 						$totalOrdered += $order['subtotal'];
 					}
 
@@ -791,7 +891,9 @@ class MailUpWsImport
 					$orderedDate = 0;
 
 					foreach ($orders->getData() as $order) {
-						if (!in_array($order["status"], array("closed", "complete", "processing"))) continue;
+                        if(isset($order["status"]) && ! in_array($order["status"], array("closed", "complete", "processing"))) {
+                            continue;
+                        }
 						$createdAt = $order['created_at'];
 						$createdAt = new DateTime($createdAt, $TIMEZONE_UTC);
 						$createdAt->setTimezone($TIMEZONE_STORE);
@@ -800,13 +902,27 @@ class MailUpWsImport
 						$filterEnd = '';
 
 						if ($request->getRequest()->getParam('mailupOrderStartDate')) {
-							$date =  Zend_Locale_Format::getDate($request->getRequest()->getParam('mailupOrderStartDate'), array('locale'=>Mage::app()->getLocale()->getLocale(), 'date_format'=>Mage::app()->getLocale()->getDateFormat(Mage_Core_Model_Locale::FORMAT_TYPE_SHORT), 'fix_date'=>true));
+							$date =  Zend_Locale_Format::getDate(
+                                $request->getRequest()->getParam('mailupOrderStartDate'), 
+                                array(
+                                    'locale'=>Mage::app()->getLocale()->getLocale(), 
+                                    'date_format'=>Mage::app()->getLocale()->getDateFormat(Mage_Core_Model_Locale::FORMAT_TYPE_SHORT), 
+                                    'fix_date'=>true
+                                )
+                            );
 							$date['month'] = str_pad($date['month'], 2, 0, STR_PAD_LEFT);
 							$date['day'] = str_pad($date['day'], 2, 0, STR_PAD_LEFT);
 							$filterStart = "{$date['year']}-{$date['month']}-{$date['day']} 00:00:00";
 						}
 						if ($request->getRequest()->getParam('mailupOrderEndDate')) {
-							$date =  Zend_Locale_Format::getDate($request->getRequest()->getParam('mailupOrderEndDate'), array('locale'=>Mage::app()->getLocale()->getLocale(), 'date_format'=>Mage::app()->getLocale()->getDateFormat(Mage_Core_Model_Locale::FORMAT_TYPE_SHORT), 'fix_date'=>true));
+							$date =  Zend_Locale_Format::getDate(
+                                $request->getRequest()->getParam('mailupOrderEndDate'), 
+                                array(
+                                    'locale'=>Mage::app()->getLocale()->getLocale(), 
+                                    'date_format'=>Mage::app()->getLocale()->getDateFormat(Mage_Core_Model_Locale::FORMAT_TYPE_SHORT), 
+                                    'fix_date'=>true
+                                )
+                            );
 							$date['month'] = str_pad($date['month'], 2, 0, STR_PAD_LEFT);
 							$date['day'] = str_pad($date['day'], 2, 0, STR_PAD_LEFT);
 							$filterEnd = "{$date['year']}-{$date['month']}-{$date['day']} 23:59:59";
@@ -817,12 +933,14 @@ class MailUpWsImport
 							if ($createdAt >= $filterStart and $createdAt <= $filterEnd) {
 								$orderedDate = 1;
 							}
-						} elseif ($filterStart) {
+						} 
+                        elseif ($filterStart) {
 							// >= di start date
 							if ($createdAt >= $filterStart) {
 								$orderedDate = 1;
 							}
-						} else {
+						} 
+                        else {
 							// <= di end date
 							if ($createdAt <= $filterEnd) {
 								$orderedDate = 1;
@@ -835,7 +953,8 @@ class MailUpWsImport
 
 					if ($orderedDate == 1) {
 						$tempOrderedDateYes[]  = $result[$count];
-					} else {
+					} 
+                    else {
 						$tempOrderedDateNo[]  = $result[$count];
 					}
 
@@ -844,13 +963,14 @@ class MailUpWsImport
 
 				if ($request->getRequest()->getParam('mailupOrderYesNo') == 'yes') {
 					$customersFiltered = array_intersect($tempOrderedDateYes, $customersFiltered);
-				} else {
+				} 
+                else {
 					$customersFiltered = array_intersect($tempOrderedDateNo, $customersFiltered);
 				}
 			}
 			//FINE FILTRO 9 DATA ACQUISTATO: testato ok
-
-		} else {
+		} 
+        else {
 			//GESTISCO LE MODIFICHE MANUALI
 			$count = 0;
 			$result = array();
@@ -888,8 +1008,13 @@ class MailUpWsImport
 		return $customersFiltered;
 	}
 
-
-	public function getFilterHints() {
+    /**
+     * Get Filter Hints
+     * 
+     * @return array
+     */
+	public function getFilterHints()
+    {
 		$filter_hints = array();
 		try {
 			// fetch write database connection that is used in Mage_Core module
@@ -909,7 +1034,14 @@ class MailUpWsImport
 		return $filter_hints;
 	}
 
-	public function saveFilterHint($filter_name, $post) {
+    /**
+     * Save Filter Hiny
+     * 
+     * @param type $filter_name
+     * @param type $post
+     */
+	public function saveFilterHint($filter_name, $post) 
+    {
 		try {
 			$hints = '';
 			foreach ($post as $k => $v) {
@@ -921,22 +1053,27 @@ class MailUpWsImport
 				}
 			}
 			//(e.g. $hints = 'mailupCustomers=2|mailupSubscribed=1';)
-
 			$connectionWrite = Mage::getSingleton('core/resource')->getConnection('core_write');
-
 			$connectionWrite->query("INSERT INTO mailup_filter_hints (filter_name, hints) VALUES ('".$filter_name."', '".$hints."')");
-		} catch (Exception $e) {
+		} 
+        catch (Exception $e) {
 			Mage::log('Exception: '.$e->getMessage(), 0);
 			die($e);
 		}
 	}
 
-	public function deleteFilterHint($filter_name) {
+    /**
+     * Delete Filter Hint
+     * 
+     * @param type $filter_name
+     */
+	public function deleteFilterHint($filter_name) 
+    {
 		try {
 			$connectionWrite = Mage::getSingleton('core/resource')->getConnection('core_write');
-
 			$connectionWrite->query("DELETE FROM mailup_filter_hints WHERE filter_name LIKE '".$filter_name."'");
-		} catch (Exception $e) {
+		} 
+        catch (Exception $e) {
 			Mage::log('Exception: '.$e->getMessage(), 0);
 			die($e);
 		}
@@ -954,18 +1091,6 @@ class MailUpWsImport
         $config = Mage::getModel('mailup/config');
         /* @var $config SevenLike_Mailup_Model_Config */
         return $config->getFieldsMapping($storeId);
-        
-        
-		/*$fieldsMappings = array();
-		try {
-			$connectionRead = Mage::getSingleton('core/resource')->getConnection('core_read');
-			return $connectionRead->fetchPairs("select magento_field_name, mailup_field_id from mailup_fields_mapping");
-		} catch (Exception $e) {
-			Mage::log('Exception: '.$e->getMessage(), 0);
-			die($e);
-		}
-
-		return $fieldsMappings;*/
 	}
     
     /**
@@ -999,4 +1124,17 @@ class MailUpWsImport
     {
         return $this->_config;
     }
+    
+    function __destruct() 
+    {
+		unset($this->soapClient);
+	}
+
+    /**
+     * Get a list of functions from the web service.
+     */
+	public function getFunctions() 
+    {
+		print_r($this->soapClient->__getFunctions());
+	}
 }

@@ -22,11 +22,67 @@ class SevenLike_MailUp_Model_Config
     /**
      * Is the log enabled?
      * 
+     * @param   int
      * @return bool
      */
     public function isLogEnabled($storeId = NULL)
     {
         return (int) Mage::getStoreConfig(self::XML_LOG_ENABLE, $storeId);
+    }
+    
+    /**
+     * Write a log entry it enabled.
+     * 
+     * @param   string
+     * @param   int
+     * @return bool
+     */
+    public function log($message, $storeId = NULL)
+    {
+        if( ! $this->isLogEnabled($storeId)) {
+            return ;
+        }
+        
+        Mage::log($message, null, 'mailup.log');
+    }
+    
+    /**
+     * Write a log entry it enabled.
+     * 
+     * @param   string
+     * @param   int
+     * @param   int
+     * @param   string
+     * @param   string
+     * @return bool
+     */
+    public function dbLog($info, $jobId = 0, $storeId = NULL, $status = 'DEBUG', $type = 'DEBUG')
+    {
+        if( ! $this->isLogEnabled($storeId)) {
+            return ;
+        }
+        
+        if( ! isset($storeId)) {
+            $storeId = Mage::app()->getStore()->getId();
+        }
+
+        $log = Mage::getModel('mailup/log');
+        /* @var $log SevenLike_MailUp_Model_Log */
+        $log->setData(array(
+            'store_id'      => $storeId,
+            'job_id'        => $jobId,
+            'type'          => $type,
+            'status'        => $status,
+            'data'          => $info,
+            'event_time'    => date("Y-m-d H:i:s"),
+        ));
+        
+        try {
+            $log->save();
+        }
+        catch(Exception $e) {
+            $this->log($e->getMessage(), $storeId);
+        }
     }
     
     /**
@@ -49,6 +105,17 @@ class SevenLike_MailUp_Model_Config
     public function getUrlConsole($storeId = NULL) 
     {
         return Mage::getStoreConfig(self::XML_CONSOLE, $storeId);
+    }
+    
+    /**
+     * Get the WSDL Url.
+     * 
+     * @param   int $storeId
+     * @return  string
+     */
+    public function getWsdlUrl($storeId)
+    {
+        return 'http://'. $this->getUrlConsole($storeId) .'/services/WSMailUpImport.asmx?WSDL';
     }
     
     /**
@@ -137,6 +204,26 @@ class SevenLike_MailUp_Model_Config
         
         return $return;*/
 	}
+    
+    /**
+     * Get the name of the Sync Table
+     * 
+     * @return  string
+     */
+    public function getSyncTableName()
+    {
+        return Mage::getSingleton('core/resource')->getTableName('mailup/sync');
+    }
+    
+    /**
+     * Get the name of the Jobs Table
+     * 
+     * @return string
+     */
+    public function getJobsTableName()
+    {
+        return Mage::getSingleton('core/resource')->getTableName('mailup/job');
+    }
     
     /**
      * Get an array of Stores, for use in a dropdown.

@@ -7,22 +7,25 @@ class SevenLike_MailUp_Model_Observer
 	const CRON_STRING_PATH  = 'crontab/jobs/sevenlike_mailup/schedule/cron_expr';
 
     /**
+     * @var SevenLike_MailUp_Model_Config
+     */
+    protected $_config;
+    
+    /**
      * Save system config event
      *
      * @param Varien_Object $observer
      */
     public function saveSystemConfig($observer)
     {
-        $store = $observer->getStore();
-        $website = $observer->getWebsite();
-
 	    Mage::getModel('core/config_data')
 		    ->load(self::CRON_STRING_PATH, 'path')
 		    ->setValue($this->_getSchedule())
 		    ->setPath(self::CRON_STRING_PATH)
 		    ->save();
+        
 	    Mage::app()->cleanCache();
-
+        
 	    $this->configCheck();
     }
 
@@ -44,7 +47,7 @@ class SevenLike_MailUp_Model_Observer
             case SevenLike_MailUp_Model_Adminhtml_System_Source_Cron_Frequency::EVERY_2_HOURS:
 	            return "0 0,2,4,6,8,10,12,14,16,18,20,22 * * *";
             case SevenLike_MailUp_Model_Adminhtml_System_Source_Cron_Frequency::EVERY_6_HOURS:
-	            return "0 0,6,12,18 * * * *";
+	            return "0 0,6,12,18 * * *";
             case SevenLike_MailUp_Model_Adminhtml_System_Source_Cron_Frequency::EVERY_12_HOURS:
 	            return "0 0,12 * * *";
 	        case SevenLike_MailUp_Model_Adminhtml_System_Source_Cron_Frequency::HOURLY:
@@ -119,9 +122,10 @@ class SevenLike_MailUp_Model_Observer
 	}
     
 	/**
+     * Observes subscription
      * 
-     * @see newsletter_subscriber_save_after
-     * @param type $observer
+     * @see     newsletter_subscriber_save_after
+     * @param   type $observer
      * @return \SevenLike_MailUp_Model_Observer
      */
 	public function inviaUtente($observer)
@@ -149,7 +153,11 @@ class SevenLike_MailUp_Model_Observer
             if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) {
                 Mage::log("SONO in registrazione, LEGGO PRIMA mailup!");
             }
-			//sono in registrazione, controllo lo stato di subscribe magento, se non risulto iscritto leggo lo status da mailup e se sono iscritto lo salvo su magento prima di continuare
+            /**
+             * are recording, monitoring the status of magento subscribe, 
+             * if you do not result in writing I read status from MailUp and if 
+             * they are registered with the subject of magento before continuing
+             */
 			if ( ! $status) {
 				//leggo l'utente da mailup
 				$this->leggiUtente($observer);
@@ -246,6 +254,11 @@ class SevenLike_MailUp_Model_Observer
 		}
 	}
 
+    /**
+     * Subscribw the user, during checkout.
+     * 
+     * @return  void
+     */
 	public function subscribeDuringCheckout()
 	{
         if (@$_REQUEST["mailup_subscribe2"]) {
@@ -257,6 +270,11 @@ class SevenLike_MailUp_Model_Observer
         }
 	}
 
+    /**
+     * @var bool
+     */
+    protected $_hasCustomerDataSynced = FALSE;
+    
     /**
      * Attach to sales_order_save_after event
      * 
@@ -271,20 +289,30 @@ class SevenLike_MailUp_Model_Observer
         
 		$order = $observer->getEvent()->getOrder();
         /* @var $order Mage_Sales_Model_Order */
-		$customer_id = $order->getCustomerId();
+		$customerId = $order->getCustomerId();
+        //$customer = Mage::getmodel('customer/customer')->load($customerId);
+        /* @var $customer Mage_Customer_Model_Customer */
+        if($this->_hasCustomerDataSynced) {
+            return; // Don't bother if nothing has updated.
+        }
         
-        $customer = Mage::getmodel('customer/customer')->load($customer_id);
         //$storeId = $customer->getStoreId(); // Is this always correct??
         $storeId = $order->getStoreId();
         
-		if($customer_id) {
-            self::setCustomerForDataSync($customer_id, $storeId);
+		if($customerId) {
+            self::setCustomerForDataSync($customerId, $storeId);
+            $this->_hasCustomerDataSynced = TRUE;
         }
 	}
-
+    
     /**
      * Attach to customer_save_after even
      * 
+     * Track if we've synced this run, only do it ocne.
+     * This event can be triggers 3+ times per run as the customer
+     * model is saved! we only want one Sync though.
+     * 
+     * @todo    refactor
      * @see     customer_save_after
      */
 	public function prepareCustomerForDataSync($observer)
@@ -294,13 +322,23 @@ class SevenLike_MailUp_Model_Observer
         }
         
 		$customer = $observer->getEvent()->getCustomer();
-		$customer_id = $customer->getId();
+        /* @var $customer Mage_Customer_Model_Customer */
+        if( ! $customer->hasDataChanges() || $this->_hasCustomerDataSynced) {
+            return; // Don't bother if nothing has updated.
+        }
+		$customerId = $customer->getId();
         $storeId = $customer->getStoreId(); // Is this always correct??
         /**
          * Possibly getting issues here with store id not being right...
+         * 
+         * @todo possible issue
+         * 
+         * If the customer is saved, how do we know which store to sync with?
+         * he could possibly have made sales on multiple websites...
          */
-		if($customer_id) {
-            self::setCustomerForDataSync($customer_id, $storeId);
+		if($customerId) {
+            self::setCustomerForDataSync($customerId, $storeId);
+            $this->_hasCustomerDataSynced = TRUE;
         }
 	}
 
@@ -311,38 +349,101 @@ class SevenLike_MailUp_Model_Observer
      * @param   int
      * @return  boolean
      */
-	private static function setCustomerForDataSync($customer_id, $storeId = NULL)
+	private static function setCustomerForDataSync($customerId, $storeId = NULL)
 	{
         if(Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) {
-            Mage::log("TRIGGERED setCustomerForDataSync, Store ID: {$storeId}");
+            Mage::log("TRIGGERED setCustomerForDataSync [StoreID:{$storeId}]");
         }
         
         if( ! isset($storeId)) {
             $storeId = Mage::app()->getStore()->getId();
         }
         
-		if( ! $customer_id) {
-            return false;
+		if( ! $customerId) {
+            return FALSE;
         }
 
-		$db_write = Mage::getSingleton('core/resource')->getConnection('core_write');
+        $helper = Mage::helper('mailup');
+        /* @var $helper SevenLike_Mailup_Helper_Data */
+        $config = Mage::getModel('mailup/config');
+        /* @var $config SevenLike_Mailup_Model_Config */
+        $lists = Mage::getModel('mailup/lists');
+        /* @var $lists SevenLike_MailUp_Model_Lists */
+        $listID = $config->getMailupListId($storeId);
+        $listGuid = $lists->getListGuid($listID, $storeId);
+        $job = Mage::getModel('mailup/job');
+        /* @var $job SevenLike_MailUp_Model_Job */
+        
+        /**
+         *  Only Sync if they are a subscriber!
+         */
+        if( ! $helper->isSubscriber($customerId, $storeId)) {
+            return;
+        }
+        
+        $job->setData(array(
+            "mailupgroupid"     => '',
+            "send_optin"        => 0,
+            'as_pending'        => 0,
+            "status"            => "queued",
+            "queue_datetime"    => gmdate("Y-m-d H:i:s"),
+            'store_id'          => $storeId,
+            'list_id'           => $listID,
+            'list_guid'         => $listGuid,
+        ));
+        $job->setAsAutoSync();
+        try {
+            $job->save();
+            $config->dbLog("Job [Insert] [Group:NO GROUP] ", $job->getId(), $storeId);
+        }
+        catch(Exception $e) {
+            $config->dbLog("Job [Insert] [FAILED] [NO GROUP] ", $job->getId(), $storeId);
+            $config->log($e);
+            throw $e;
+        }
+        
 		try {
-			$db_write->insert("mailup_sync", array(
+            $jobTask = Mage::getModel('mailup/sync');
+            /** @var $jobTask SevenLike_MailUp_Model_Sync */
+			$jobTask->setData(array(
                 'store_id'      => $storeId,
-				"customer_id"   => $customer_id,
+				"customer_id"   => $customerId,
 				"entity"        => "customer",
-				"job_id"        => 0,
-				"needs_sync"    => true,
-				"last_sync"     => null
+				"job_id"        => $job->getId(),
+				"needs_sync"    => TRUE,
+				"last_sync"     => NULL,
 			));
+            $jobTask->save();
+            $config->dbLog("Sync [Insert] [customer] [{$customerId}]", $job->getId(), $storeId);
 		} 
-        catch (Exception $e) {
-			$db_write->update("mailup_sync", array(
-                'store_id'      => $storeId,
-				"needs_sync"    => true
-			), "customer_id=$customer_id AND entity='customer' AND job_id=0");
+        catch(Exception $e) {
+            $config->dbLog("Sync [Insert] [customer] [FAILED] [{$customerId}]", $job->getId(), $storeId);
+            $config->log($e);
+            throw $e;
 		}
+        
+        /**
+         * @todo ADD CRON 
+         * 
+         * WE NEED TO ACTUALLY ADD A CRON JOB NOW!!
+         * 
+         * OR we use a separate Auto Sync job!!
+         */
 
-		return true;
+		return TRUE;
 	}
+    
+    /**
+     * Get the config
+     * 
+     * @reutrn SevenLike_MailUp_Model_Config
+     */
+    protected function _config()
+    {        
+        if(NULL === $this->_config) {
+            $this->_config = Mage::getModel('mailup/config');
+        }
+        
+        return $this->_config;
+    }
 }

@@ -1,25 +1,43 @@
 <?xml version="1.0"?>
-
 <config>
     <modules>
         <SevenLike_MailUp>
-            <version>2.3.1</version>
+            <version>2.4.1</version>
         </SevenLike_MailUp>
     </modules>
-
+<!-- frontend -->
+	<frontend>
+        <routers>
+            <mailup>
+                <use>standard</use>
+                <args>
+                    <module>SevenLike_MailUp</module>
+                    <frontName>mailup</frontName>
+                </args>
+            </mailup>
+        </routers>
+		<translate>
+			<modules>
+				<mailup>
+					<files>
+						<default>SevenLike_MailUp.csv</default>
+					</files>
+				</mailup>
+			</modules>
+		</translate>
+		<layout>
+			<updates>
+				<mailup>
+					<file>mailup.xml</file>
+				</mailup>
+			</updates>
+		</layout>
+	</frontend>
+<!-- global -->
     <global>
+<!-- models -->
         <models>
             <mailup>
-                <class>SevenLike_MailUp_Model</class>
-            </mailup>
-            <!-- Override Subscriber so we can disable Notifiactions -->
-            <newsletter>
-				<rewrite>
-					<subscriber>SevenLike_MailUp_Model_Subscriber</subscriber>
-				</rewrite>
-			</newsletter>
-            
-            <!--<mailup>
                 <class>SevenLike_MailUp_Model</class>
                 <resourceModel>mailup_mysql4</resourceModel>
             </mailup>
@@ -29,10 +47,22 @@
                     <job>
                         <table>mailup_sync_jobs</table>
                     </job>
+                     <sync>
+                        <table>mailup_sync</table>
+                    </sync>
+                    <log>
+                        <table>mailup_log</table>
+                    </log>
                 </entities>
-            </mailup_mysql4>-->
-            
+            </mailup_mysql4>
+            <!-- Override Subscriber so we can disable Notifiactions -->
+            <newsletter>
+				<rewrite>
+					<subscriber>SevenLike_MailUp_Model_Subscriber</subscriber>
+				</rewrite>
+			</newsletter>
         </models>
+<!-- blocks -->
         <blocks>
             <mailup>
                 <class>SevenLike_MailUp_Block</class>
@@ -43,6 +73,7 @@
                 <class>SevenLike_MailUp_Helper</class>
             </mailup>
         </helpers>
+<!-- resources -->
         <resources>
             <mailup_setup>
                 <setup>
@@ -63,6 +94,7 @@
                 </connection>
             </mailup_read>
         </resources>
+<!-- events -->
 		<events>
 			<newsletter_subscriber_save_after>
 				<observers>
@@ -129,7 +161,7 @@
 			</sales_order_save_after>
 		</events>
     </global>
-
+<!-- admin -->
     <admin>
         <routers>
             <mailup>
@@ -141,7 +173,7 @@
             </mailup>
         </routers>
     </admin>
-
+<!-- default -->
     <default>
         <mailup_newsletter>
             <mailup>
@@ -150,7 +182,7 @@
             </mailup>
         </mailup_newsletter>
     </default>
-
+<!-- adminhtml -->
     <adminhtml>
         <menu>
             <newsletter>
@@ -161,13 +193,28 @@
 	                        <mailup_configuration translate="title">
 		                        <title><![CDATA[Settings & Field Mapping]]></title>
 		                        <action>mailup/adminhtml_configuration</action>
-		                        <sort_order>100</sort_order>
+		                        <sort_order>0</sort_order>
 			                </mailup_configuration>
                             <mailup_filters translate="title">
                                 <title>Filters</title>
                                 <action>mailup/adminhtml_filter</action>
-                                <sort_order>200</sort_order>
+                                <sort_order>10</sort_order>
                             </mailup_filters>
+                            <mailup_jobs module="mailup">
+                                <title>View MailUp Tasks</title>
+                                <sort_order>20</sort_order>
+                                <action>mailup/adminhtml_mailupbackend</action>
+                            </mailup_jobs>
+                            <mailup_sync module="mailup">
+                                <title>View Task Data</title>
+                                <sort_order>30</sort_order>
+                                <action>mailup/adminhtml_sync</action>
+                            </mailup_sync>
+                            <mailup_log module="mailup">
+                                <title>View Logs</title>
+                                <sort_order>40</sort_order>
+                                <action>mailup/adminhtml_log</action>
+                            </mailup_log>
                         </children>
                     </mailup>
                 </children>
@@ -197,6 +244,15 @@
 										<mailup_viewdatatransferlog>
 											<title>View data transfer log</title>
 										</mailup_viewdatatransferlog>
+                                        <mailup_jobs translate="title">
+                                            <title>Mailup Jobs</title>
+                                        </mailup_jobs>
+                                        <mailup_sync translate="title">
+                                            <title>Mailup Job Data</title>
+                                        </mailup_sync>
+                                        <mailup_log translate="title">
+                                            <title>Mailup Logs</title>
+                                        </mailup_log>
 									</children>
 								</mailup>
                             </children>
@@ -235,45 +291,33 @@
             </modules>
         </translate>
     </adminhtml>
-    
-	<frontend>
-        
-        <!--<routers>
-            <mailup>
-                <use>standard</use>
-                <args>
-                    <module>SevenLike_MailUp</module>
-                    <frontName>mailup</frontName>
-                </args>
-            </mailup>
-        </routers>-->
-        
-		<translate>
-			<modules>
-				<mailup>
-					<files>
-						<default>SevenLike_MailUp.csv</default>
-					</files>
-				</mailup>
-			</modules>
-		</translate>
-        
-		<layout>
-			<updates>
-				<mailup>
-					<file>mailup.xml</file>
-				</mailup>
-			</updates>
-		</layout>
-	</frontend>
-
+<!-- cron -->
     <crontab>
         <jobs>
+            
+            <!--
+            Manual Sync will be triggered ASAP.
+            
+            Auto sync will be triggered by the settings in the DB / config
+            -->
+            
+            <!--
+            <sevenlike_mailup_manualsync>
+                <run><model>mailup/Cron::run</model></run>
+            </sevenlike_mailup_manualsync>
+            -->
+            
+            <sevenlike_mailup_autosync>
+                <run><model>mailup/Cron::autoSync</model></run>
+            </sevenlike_mailup_autosync>
+
             <sevenlike_mailup>
+                <!--<schedule><cron_expr>*/15 * * * *</cron_expr></schedule>-->
                 <run><model>mailup/Cron::run</model></run>
             </sevenlike_mailup>
+            <!-- not in use? never implemented.. -->
 			<mailup_connectionproblemsredo>
-				<schedule><cron_expr>*/5 * * * *</cron_expr></schedule>
+				<schedule><cron_expr>*/30 * * * *</cron_expr></schedule>
 				<run><model>mailup/Cron::resendConnectionErrors</model></run>
 			</mailup_connectionproblemsredo>
         </jobs>

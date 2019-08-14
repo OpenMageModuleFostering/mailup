@@ -5,4 +5,16 @@
 			<block type="mailup/checkout_subscribe" name="mailup.subscribe" template="mailup/subscribe.phtml" />
 		</reference>
 	</checkout_onepage_review>
+    
+    <mailup_index_index>   
+        <reference name="root">   
+            <action method="setTemplate">
+                <template>page/1column.phtml</template>
+            </action>   
+        </reference>   
+        <reference name="content">   
+            <block type="mailup/index" name="mailup_index" template="mailup/index.phtml"/>   
+        </reference>   
+    </mailup_index_index>  
+     
 </layout>

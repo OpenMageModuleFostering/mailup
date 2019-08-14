@@ -2,14 +2,19 @@
 /**
  * filter.phtml
  */
-$wsSend = new MailUpWsSend(); /** @todo add in storeID, use session.. not needed really here... **/
+$storeId = $this->getRequest()->getParam('store_id');
+if(empty($storeId)) {
+    $storeId = NULL; //Mage::app()->getDefaultStoreView()->getStoreId();
+}
+
+$wsSend = new MailUpWsSend($storeId); /** @todo add in storeID, use session.. not needed really here... **/
 $accessKey = $wsSend->loginFromId();
 
 if ($accessKey === false || strlen(Mage::getStoreConfig('mailup_newsletter/mailup/list')) < 1) {
     echo $this->__('WARNING: before proceeding you must correctly configure the settings of MailUp access in System->Configuration->Newsletter->MailUp');
 } else {
     //controllo se la lista e' stata selezionata correttamente
-    $wsImport = new MailUpWsImport();
+    $wsImport = new MailUpWsImport($storeId);
     $mailupLists = $wsImport->GetNlList();
 
     //carico i filtri salvati

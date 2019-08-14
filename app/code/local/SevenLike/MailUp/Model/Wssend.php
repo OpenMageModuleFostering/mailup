@@ -10,7 +10,12 @@ class MailUpWsSend
      * @var int
      */
     protected $storeId;
-
+    /**
+     * @var SevenLike_MailUp_Model_Config
+     */
+    protected $_config;
+    
+    
 	function __construct($storeId = NULL) 
     {
 		$this->soapClient = new SoapClient(
@@ -70,7 +75,8 @@ class MailUpWsSend
     /**
      * @return $accessKey | false
      */
-    public function loginFromId() {
+    public function loginFromId() 
+    {
         try {
             //login with webservice user
             $loginData = array ('user' => Mage::getStoreConfig('mailup_newsletter/mailup/username_ws', $this->storeId),
@@ -105,7 +111,8 @@ class MailUpWsSend
 		return false;
     }
 
-    public function GetFields($accessKey) {
+    public function GetFields($accessKey) 
+    {
         $fields = null;
 
         try {
@@ -117,10 +124,12 @@ class MailUpWsSend
             }
 
             $fields = $this->_parseGetFieldsXmlResponse($xml);
-        } catch (SoapFault $soapFault) {
+        } 
+        catch (SoapFault $soapFault) {
             Mage::log('SOAP error', 0);
             Mage::log($soapFault, 0);
-        } catch (Exception $e) {
+        } 
+        catch (Exception $e) {
             Mage::log('Custom exception', 0);
             Mage::log($e->getMessage(), 0);
         }
@@ -128,7 +137,8 @@ class MailUpWsSend
         return $fields;
     }
 
-    private function _parseGetFieldsXmlResponse($xmlSimpleElement) {
+    private function _parseGetFieldsXmlResponse($xmlSimpleElement) 
+    {
         $fields = $this->_getFieldsDefaultConfiguration();
 
         if ($xmlSimpleElement->Fields && sizeof($xmlSimpleElement->Fields->Field) > 0) {
@@ -142,7 +152,8 @@ class MailUpWsSend
         return $fields;
     }
 
-    private function _getFieldsDefaultConfiguration() {
+    private function _getFieldsDefaultConfiguration()
+    {
         $fields = array();
 
         $fields['nome'] = '1';
@@ -176,106 +187,132 @@ class MailUpWsSend
     }
 
 	
-	public function logout() {
+	public function logout() 
+    {
 		try {
 			$this->soapClient->Logout(array('accessKey' => $this->accessKey));
 			if ($this->readReturnCode('Logout', 'errorCode') != 0) {
 				echo '<br /><br />Errore Logout'. $this->readReturnCode('Logout', 'errorDescription');
             }
-		} catch (SoapFault $soapFault) {
+		} 
+        catch (SoapFault $soapFault) {
             Mage::log('SOAP error', 0);
             Mage::log($soapFault, 0);
 		}
 	}
 	
-	public function getLists() {
+	public function getLists() 
+    {
 		try {
 			$this->soapClient->GetLists(array('accessKey' => $this->accessKey));
 			if ($this->readReturnCode('GetLists', 'errorCode') != 0) {
 				echo '<br /><br />Errore GetLists: '. $this->readReturnCode('GetLists', 'errorDescription');
-            } else {
+            } 
+            else {
                 $this->printLastResponse();
             }
-		} catch (SoapFault $soapFault) {
+		} 
+        catch (SoapFault $soapFault) {
             Mage::log('SOAP error', 0);
             Mage::log($soapFault, 0);
 		}
 	}
 	
-	public function getGroups($params) {
+	public function getGroups($params) 
+    {
 		try {
 			$params = array_merge((array)$params, array('accessKey' => $this->accessKey));
 			$this->soapClient->GetGroups($params);
 			if ($this->readReturnCode('GetGroups', 'errorCode') != 0) {
 				echo '<br /><br />Errore GetGroups: '. $this->readReturnCode('GetGroups', 'errorDescription');
-            } else {
+            } 
+            else {
                 $this->printLastResponse();
             }
-		} catch (SoapFault $soapFault) {
+		} 
+        catch (SoapFault $soapFault) {
             Mage::log('SOAP error', 0);
             Mage::log($soapFault, 0);
 		}
 	}
 	
-	public function getNewsletters($params) {
+	public function getNewsletters($params) 
+    {
 		try {
 			$params = array_merge((array)$params, array('accessKey' => $this->accessKey));
 			$this->soapClient->GetNewsletters($params);
 			if ($this->readReturnCode('GetNewsletters', 'errorCode') != 0) {
 				echo '<br /><br />Errore GetNewsletters: '. $this->readReturnCode('GetNewsletters', 'errorDescription');
-            } else {
+            } 
+            else {
                 $this->printLastResponse();
             }
-		} catch (SoapFault $soapFault) {
+		} 
+        catch (SoapFault $soapFault) {
             Mage::log('SOAP error', 0);
             Mage::log($soapFault, 0);
 		}
 	}
 	
-	public function createNewsletter($params) {
+	public function createNewsletter($params) 
+    {
 		try {
 			$params = array_merge((array)$params, array('accessKey' => $this->accessKey));
 			$this->soapClient->createNewsletter($params);
 
             $this->printLastRequest();
-			if ($this->readReturnCode('CreateNewsletter', 'errorCode') != 0) {
-				echo '<br /><br />Errore CreateNewsletter: '. $this->readReturnCode('CreateNewsletter', 'errorCode') .' - '. $this->readReturnCode('CreateNewsletter', 'errorDescription');
-            } else {
+			if($this->readReturnCode('CreateNewsletter', 'errorCode') != 0) {
+				echo '<br /><br />Errore CreateNewsletter: '. $this->readReturnCode('CreateNewsletter', 'errorCode') .' - '. 
+                     $this->readReturnCode('CreateNewsletter', 'errorDescription')
+                ;
+            } 
+            else {
                 $this->printLastResponse();
             }
-		} catch (SoapFault $soapFault) {
+		} 
+        catch (SoapFault $soapFault) {
             Mage::log('SOAP error', 0);
             Mage::log($soapFault, 0);
 		}
 	}
 	
-	public function sendNewsletter($params) {
+	public function sendNewsletter($params) 
+    {
 		try {
 			$params = array_merge((array)$params, array('accessKey' => $this->accessKey));
 			$this->soapClient->SendNewsletter($params);
 			$this->printLastRequest();
 			if ($this->readReturnCode('SendNewsletter', 'errorCode') != 0) {
-				echo '<br /><br />Errore SendNewsletter: '. $this->readReturnCode('SendNewsletter', 'errorCode') .' - '. $this->readReturnCode('SendNewsletter', 'errorDescription');
-            } else {
+				echo '<br /><br />Errore SendNewsletter: '. $this->readReturnCode('SendNewsletter', 'errorCode') .' - '. 
+                     $this->readReturnCode('SendNewsletter', 'errorDescription')
+                ;
+            } 
+            else {
                 $this->printLastResponse();
             }
-		} catch (SoapFault $soapFault) {
+		} 
+        catch (SoapFault $soapFault) {
             Mage::log('SOAP error', 0);
             Mage::log($soapFault, 0);
 		}
 	}
 	
-	public function sendNewsletterFast($params) {
+	public function sendNewsletterFast($params) 
+    {
 		try {
 			$params = array_merge((array)$params, array('accessKey' => $this->accessKey));
 			$this->soapClient->SendNewsletterFast($params);
 			$this->printLastRequest();
 			if ($this->readReturnCode('SendNewsletterFast', 'errorCode') != 0) {
-				echo '<br /><br />Errore SendNewsletterFast: '. $this->readReturnCode('SendNewsletterFast', 'errorCode') .' - '. $this->readReturnCode('SendNewsletterFast', 'errorDescription');
-            } else {
+				echo '<br /><br />Errore SendNewsletterFast: '. $this->readReturnCode('SendNewsletterFast', 'errorCode') .
+                     ' - '. $this->readReturnCode('SendNewsletterFast', 'errorDescription')
+                ;
+            } 
+            else {
                 $this->printLastResponse();
             }
-		} catch (SoapFault $soapFault) {
+		} 
+        catch (SoapFault $soapFault) {
             Mage::log('SOAP error', 0);
             Mage::log($soapFault, 0);
 		}
@@ -309,25 +346,30 @@ class MailUpWsSend
 		return $rCode->item(0)->nodeValue;
 	}
 	
-	private function printLastRequest() {
+	private function printLastRequest() 
+    {
 		echo '<br />Request :<br />'. htmlentities($this->soapClient->__getLastRequest()) .'<br />';
 	}
 	
-	private function printLastResponse() {
+	private function printLastResponse() 
+    {
 		echo '<br />XMLResponse: '. $this->soapClient->__getLastResponse() .'<br />'; //htmlentities();
 	}
 
     //TODO: seems unused, remove if so
-	public function getAccessKey() {
+	public function getAccessKey() 
+    {
 		return $this->accessKey;
 	}
 	
-	public function option($key, $value) {
+	public function option($key, $value) 
+    {
 		return array('Key' => $key, 'Value' => $value);
 	}
 
     //TODO: TEST stuff (this shouldn't be here)
-    public function loginTest() {
+    public function loginTest() 
+    {
         $loginData = array('user' => 'a7410', 'pwd' => 'GA6VAN0W', 'url' => 'g4a0.s03.it');
 
         $result = get_object_vars($this->soapClient->Login($loginData));
@@ -341,9 +383,24 @@ class MailUpWsSend
         return $xml['errorCode'];
     }
 
-    public function testSoap() {
+    public function testSoap() 
+    {
         $client = new SoapClient('http://soapclient.com/xml/soapresponder.wsdl', array('trace' => 1, 'exceptions' => 1, 'connection_timeout' => 10));
         //print_r($client->__getFunctions());
         return $client->Method1('x12qaq','c56tf3');
+    }
+    
+    /**
+     * Get the config
+     * 
+     * @reutrn SevenLike_MailUp_Model_Config
+     */
+    protected function _config()
+    {        
+        if(NULL === $this->_config) {
+            $this->_config = Mage::getModel('mailup/config');
+        }
+        
+        return $this->_config;
     }
 }

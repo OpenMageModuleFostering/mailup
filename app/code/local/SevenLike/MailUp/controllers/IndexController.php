@@ -5,40 +5,30 @@
 class SevenLike_MailUp_IndexController extends Mage_Core_Controller_Front_Action
 {
     /**
+     * Predispatch: should set layout area
+     *
+     * @return Mage_Core_Controller_Front_Action
+     */
+    public function preDispatch()
+    {
+        $config = Mage::getModel('mailup/config');
+        /* @var $config SevenLike_MailUp_Model_Config */
+        
+        //if( ! $config->isTestMode()) {
+        //    die('Access Denied.');
+        //}
+        
+        parent::preDispatch();
+        
+        return $this;
+    }
+    
+    /**
      * Default Action
      */
     public function indexAction()
     {
-        return;
         
-        $config = Mage::getModel('mailup/config');
-        /* @var $config SevenLike_Mailup_Model_Config */
-        
-        $cartCollection = Mage::getResourceModel('reports/quote_collection');
-        //$cartCollection->prepareForAbandonedReport(array(1));
-        $cartCollection->prepareForAbandonedReport($config->getAllStoreIds());
-        $cartCollection->addFieldToFilter('customer_id', 6);
-        $cartCollection->load();
-        
-        $end = end($cartCollection);
-        
-        var_dump($end);
-        
-        $end = $cartCollection->getLastItem();
-        
-        //var_dump($cartCollection);
-        
-        foreach($cartCollection as $cart) {
-            //var_dump($cart);
-            
-            echo $cart->getGrandTotal() . "<br />";
-            
-        }
-        
-        
-        var_dump($end);
-        
-        die('done');
     }
     
     /**

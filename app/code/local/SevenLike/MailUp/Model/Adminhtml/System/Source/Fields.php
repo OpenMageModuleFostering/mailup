@@ -31,12 +31,6 @@ class SevenLike_MailUp_Model_Adminhtml_System_Source_Fields
             //$storeId = Mage::app()->getDefaultStoreView()->getStoreId();
         }
         
-//        var_dump($storeCode);
-//        var_dump($websiteCode);
-//        var_dump($storeId);
-//        var_dump(Mage::app()->getStores());
-
-        
         $options = array(array('value' => '', 'label' => ''));
         if(false !== ($data = Mage::app()->getCache()->load($cacheId))) {
             $options = unserialize($data);
