@@ -2,7 +2,7 @@
 <config>
     <modules>
         <MailUp_MailUpSync>
-            <version>2.7.0</version>
+            <version>2.7.1</version>
         </MailUp_MailUpSync>
     </modules>
 <!-- frontend -->
@@ -358,19 +358,13 @@
             </MailUp_MailUpSync_manualsync>
             -->
             
-            <MailUp_MailUpSync_autosync>
+            <mailup_mailupsync_autosync>
                 <run><model>mailup/Cron::autoSync</model></run>
-            </MailUp_MailUpSync_autosync>
+            </mailup_mailupsync_autosync>
 
-            <MailUp_MailUpSync>
-                <!--<schedule><cron_expr>*/15 * * * *</cron_expr></schedule>-->
+            <mailup_mailupsync>
                 <run><model>mailup/Cron::run</model></run>
-            </MailUp_MailUpSync>
-            <!-- not in use? never implemented.. -->
-			<mailup_connectionproblemsredo>
-				<schedule><cron_expr>*/30 * * * *</cron_expr></schedule>
-				<run><model>mailup/Cron::resendConnectionErrors</model></run>
-			</mailup_connectionproblemsredo>
+            </mailup_mailupsync>
         </jobs>
     </crontab>
 </config>

@@ -180,7 +180,6 @@ class MailUp_MailUpSync_Block_Adminhtml_MailUp_Grid extends Mage_Adminhtml_Block
                 'sortable'  => false,
                 'index'     => 'stores',
                 'is_system' => true,
-                'comment' => 'Run a pending or queued job, or delete an existing job'
         ));
 
 
