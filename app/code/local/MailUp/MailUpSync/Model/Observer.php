@@ -294,10 +294,12 @@ class MailUp_MailUpSync_Model_Observer
 				$ws  = "http://{$console}/frontend/Xmlunsubscribe.aspx";
 			}
 
+			$client_ip = $_SERVER['HTTP_CLIENT_IP']?:($_SERVER['HTTP_X_FORWARDE‌​D_FOR']?:$_SERVER['REMOTE_ADDR']);
 			$ws .= "?ListGuid=" . rawurlencode($listGUID);
 			$ws .= "&List=" . rawurlencode($listId);
 			$ws .= "&Email=" . rawurlencode($model->getEmail());
             $ws .= "&Confirm=" . rawurlencode($confirm);
+            $ws .= "&ipAddress=".rawurlencode($client_ip);
 
             // If there is a default group defined, use it
             if ($defaultGroupId !== null) {
@@ -307,6 +309,7 @@ class MailUp_MailUpSync_Model_Observer
 			try {
 				if(Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) {
                     Mage::log("mailup invio utente $ws");
+                    Mage::log("MAILUP | invio utente - ip client: ".$client_ip);
                 }
 				$result = @file_get_contents($ws);
 				if (Mage::getStoreConfig('mailup_newsletter/mailup/enable_log')) {
@@ -334,7 +337,7 @@ class MailUp_MailUpSync_Model_Observer
 
 		if (!strlen($url_console) or !strlen($user) or !strlen($password) or !strlen($list)) {
 			$url = Mage::getModel('adminhtml/url');
-			$url = $url->getUrl("mailup/adminhtml_configuration");
+			$url = $url->getUrl("adminhtml/mailup_configuration");
 			$message = Mage::helper("mailup")->__('MailUp configuration is not complete');
 			$message = str_replace("href=''", "href='$url'", $message);
 			Mage::getSingleton('adminhtml/session')->addWarning($message);
@@ -346,7 +349,7 @@ class MailUp_MailUpSync_Model_Observer
 		$mapping = $wsimport->getFieldsMapping();
 		if (empty($mapping)) {
 			$url = Mage::getModel('adminhtml/url');
-			$url = $url->getUrl("mailup/adminhtml_configuration");
+			$url = $url->getUrl("adminhtml/mailup_configuration");
 			$message = Mage::helper("mailup")->__('MailUp fields mapping is not complete');
 			$message = str_replace("href=''", "href='$url'", $message);
 			Mage::getSingleton('adminhtml/session')->addWarning($message);

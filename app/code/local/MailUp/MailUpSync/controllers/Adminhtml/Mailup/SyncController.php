@@ -1,5 +1,5 @@
 <?php
-class MailUp_MailUpSync_Adminhtml_SyncController extends Mage_Adminhtml_Controller_Action
+class MailUp_MailUpSync_Adminhtml_Mailup_SyncController extends Mage_Adminhtml_Controller_Action
 {
     /**
      * Default Action
@@ -33,5 +33,10 @@ class MailUp_MailUpSync_Adminhtml_SyncController extends Mage_Adminhtml_Controll
         );
 
         $this->_redirect('*/*/index');
+    }
+
+    protected function _isAllowed()
+    {
+        return Mage::getSingleton('admin/session')->isAllowed('newsletter/mailup/mailup_sync');
     }
 }
