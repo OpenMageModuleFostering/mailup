@@ -24,57 +24,67 @@
     <mailup_adminhtml_filter_index>
         <update handle="mailup_adminhtml_index"/>
         <reference name="content">
-            <block type="mailup/filters" name="filter" template="sevenlike/mailup/filter.phtml"/>
+            <block type="mailup/filters" name="filter" template="mailup/mailupsync/filter.phtml"/>
         </reference>
         <reference name="head">
-            <action method="addCss"><stylesheet>sevenlike/mailup/mailup.css</stylesheet></action>
+            <action method="addCss"><stylesheet>mailup/mailupsync/mailup.css</stylesheet></action>
         </reference>
     </mailup_adminhtml_filter_index>
     
     <mailup_adminhtml_filter_confirm>
         <update handle="mailup_adminhtml_confirm"/>
         <reference name="content">
-            <block type="adminhtml/template" name="filter" template="sevenlike/mailup/confirm.phtml"/>
+            <block type="adminhtml/template" name="filter" template="mailup/mailupsync/confirm.phtml"/>
         </reference>
         <reference name="head">
-            <action method="addCss"><stylesheet>sevenlike/mailup/mailup.css</stylesheet></action>
+            <action method="addCss"><stylesheet>mailup/mailupsync/mailup.css</stylesheet></action>
         </reference>
     </mailup_adminhtml_filter_confirm>
     
     <mailup_adminhtml_fieldsmapping_index>
         <update handle="mailup_adminhtml_index" />
         <reference name="content">
-            <block type="adminhtml/template" name="fieldsmapping" template="sevenlike/mailup/fieldsmapping.phtml" />
+            <block type="adminhtml/template" name="fieldsmapping" template="mailup/mailupsync/fieldsmapping.phtml" />
         </reference>
         <reference name="head">
-            <action method="addCss"><stylesheet>sevenlike/mailup/mailup.css</stylesheet></action>
+            <action method="addCss"><stylesheet>mailup/mailupsync/mailup.css</stylesheet></action>
         </reference>
     </mailup_adminhtml_fieldsmapping_index>
     
 	<mailup_adminhtml_viewdatatransferlog_index>
 		<update handle="mailup_adminhtml_index" />
 		<reference name="content">
-			<block type="adminhtml/template" name="viewdatatransferlog" template="sevenlike/mailup/viewdatatransferlog.phtml" />
+			<block type="adminhtml/template" name="viewdatatransferlog" template="mailup/mailupsync/viewdatatransferlog.phtml" />
 		</reference>
 		<reference name="head">
-			<action method="addCss"><stylesheet>sevenlike/mailup/mailup.css</stylesheet></action>
+			<action method="addCss"><stylesheet>mailup/mailupsync/mailup.css</stylesheet></action>
 		</reference>
 	</mailup_adminhtml_viewdatatransferlog_index>
     
 	<mailup_adminhtml_viewdatatransferlog_search>
 		<update handle="mailup_adminhtml_index" />
 		<reference name="content">
-			<block type="adminhtml/template" name="viewdatatransferlog" template="sevenlike/mailup/viewdatatransferlog.phtml" />
+			<block type="adminhtml/template" name="viewdatatransferlog" template="mailup/mailupsync/viewdatatransferlog.phtml" />
 		</reference>
 		<reference name="head">
-			<action method="addCss"><stylesheet>sevenlike/mailup/mailup.css</stylesheet></action>
+			<action method="addCss"><stylesheet>mailup/mailupsync/mailup.css</stylesheet></action>
 		</reference>
 	</mailup_adminhtml_viewdatatransferlog_search>
+
+    <adminhtml_system_config_edit>
+        <reference name="head">
+            <action method="addJs"><stylesheet>mailup/admin.js</stylesheet></action>
+        </reference>
+        <reference name="content">
+            <block type="adminhtml/template" name="mailupsysconfigjavascript" template="mailup/mailupsync/sysconfigjavascript.phtml" />
+        </reference>
+    </adminhtml_system_config_edit>
+
     
     <!-- works but need a better image.. -->
     <!--<default>
         <reference name="head">
-			<action method="addCss"><stylesheet>sevenlike/mailup/mailup.css</stylesheet></action>
+			<action method="addCss"><stylesheet>mailup/mailupsync/mailup.css</stylesheet></action>
 		</reference>
     </default>-->
     

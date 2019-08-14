@@ -19,7 +19,7 @@
                         case Mage_Newsletter_Model_Subscriber::STATUS_SUBSCRIBED:
                             echo $this->__('You are currently subscribed to "General Subscription"'); break;
                         case Mage_Newsletter_Model_Subscriber::STATUS_UNCONFIRMED:
-                            echo $this->__('Check your email to confirm your subscription to our newsletter.'); break;
+                            echo Mage::helper("mailup")->__('Check your email to confirm your subscription to our newsletter.'); break;
                         default:
                             echo $this->__('You are currently not subscribed to any newsletter.');
                     }
