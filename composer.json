@@ -1,16 +1,19 @@
 {
-    "name": "OpenMageModuleFostering/MailUp",
+    "name": "OpenMageModuleFostering\/MailUp",
     "type": "magento-module",
     "license": "AFL",
     "homepage": "",
     "description": "MailUp is your complete email delivery solution. It combines strong campaign management features with automated messaging and a free SMTP relay service.",
     "authors": [
-    {
-        "name": "MailUp",
-        "email": "sales@mailup.com"
-    }
-],
+        {
+            "name": "MailUp",
+            "email": "sales@mailup.com"
+        }
+    ],
     "suggest": {
-        "magento-hackathon/magento-composer-installer": "*"
-    }
+        "magento-hackathon\/magento-composer-installer": "*"
+    },
+    "keywords": [
+        "openmage-module"
+    ]
 }
